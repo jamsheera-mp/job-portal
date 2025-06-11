@@ -3,10 +3,15 @@ node_modules/
 
 # Environment variables
 .env
+backend/.env
 
 # Build output
 dist/
 build/
+coverage/
 
 # Logs
 *.log
+
+# macOS system files
+.DS_Store
