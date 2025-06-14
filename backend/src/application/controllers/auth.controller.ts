@@ -101,7 +101,11 @@ export class AuthController {
         redirectUrl,
       } as VerifyOtpResponseDto);
     } catch (error: any) {
-      res.status(400).json({ message: error.message || 'OTP verification failed' });
+     if (error.message === 'Maximum OTP verification attempts exceeded. Please request a new OTP.') {
+        res.status(429).json({ message: error.message });
+      } else {
+        res.status(400).json({ message: error.message || 'OTP verification failed' });
+      }
     }
   }
   

@@ -2,7 +2,7 @@ import { TempUserModel } from '../../domain/entities/tempUser.entity';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv'
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
-
+import bcrypt from 'bcryptjs'
 
 dotenv.config()
 
@@ -43,19 +43,24 @@ export class OtpService {
 
   async generateOtp(email: string, userData: any): Promise<void> {
     const otp = this.generateOtpCode();
-    console.log('otp:',otp);
-    
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
-
-    const existingTempUser = await TempUserModel.findOne({ email });
-    if (existingTempUser) {
-      await TempUserModel.deleteOne({ email });
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`OTP for ${email}: ${otp}`);
     }
+
+
+    const saltRounds = 10;
+    const hashedOtp = await bcrypt.hash(otp, saltRounds);
+
+
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    await TempUserModel.deleteOne({ email }); // Delete any existing TempUser
 
     const tempUser = new TempUserModel({
       ...userData,
-      otp,
+      otp:hashedOtp,
       otpExpires,
+      attempts: 0, //Reset attempts on new OTP generation
     });
 
     await tempUser.save();
@@ -71,13 +76,26 @@ export class OtpService {
     await this.transporter.sendMail(mailOptions);
   }
 
-  async verifyOtp(email: string, otp: string): Promise<boolean> {
+  async verifyOtp(email: string, inputOtp: string): Promise<boolean> {
     const tempUser = await TempUserModel.findOne({ email });
-    if (!tempUser) {
-      return false;
+    if (!tempUser)  return false;
+
+    if (tempUser.otpExpires < new Date()) return false;
+
+    // Check attempts limit
+    const maxAttempts = 5;
+    if (tempUser.attempts ?? 0 >= maxAttempts) {
+      throw new Error('Maximum OTP verification attempts exceeded. Please request a new OTP.');
     }
 
-    if (tempUser.otp !== otp || tempUser.otpExpires < new Date()) {
+    const isMatch = await bcrypt.compare(inputOtp, tempUser.otp);
+
+   if (!isMatch) {
+      // Increment attempts on failure
+      await TempUserModel.updateOne(
+        { email },
+        { $inc: { attempts: 1 } }
+      );
       return false;
     }
 
@@ -85,8 +103,7 @@ export class OtpService {
   }
 
   async getTempUser(email: string): Promise<any> {
-    const tempUser = await TempUserModel.findOne({ email });
-    return tempUser;
+     return await TempUserModel.findOne({ email });
   }
 
   async deleteTempUser(email: string): Promise<void> {

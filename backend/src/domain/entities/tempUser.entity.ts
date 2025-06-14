@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { User } from '../interfaces/user.interface';
+import { TempUser } from '../interfaces/tempUser.interface';
 
 const TempUserSchema: Schema = new Schema({
   email: { type: String, required: true, unique: true },
@@ -16,7 +16,13 @@ const TempUserSchema: Schema = new Schema({
     location: { type: String },
   },
   otp: { type: String, required: true },
-  otpExpires: { type: Date, required: true },
+  otpExpires: { type: Date, required: true }, 
+  attempts: { type: Number, default: 0 },
+}, {
+  timestamps: true,
 });
 
-export const TempUserModel = mongoose.model<User & Document>('TempUser', TempUserSchema);
+//  TTL Index – deletes document after otpExpires is reached
+TempUserSchema.index({ otpExpires: 1 }, { expireAfterSeconds: 0 });
+
+export const TempUserModel = mongoose.model<TempUser & Document>('TempUser', TempUserSchema);

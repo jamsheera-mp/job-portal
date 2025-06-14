@@ -61,7 +61,12 @@ const VerifyOtpPage: FC = () => {
       if (err.name === 'AbortError') {
         console.log('Request aborted');
       } else {
-        setError(err.response?.data?.message || 'OTP verification failed');
+         const errorMessage = err.response?.data?.message || 'OTP verification failed';
+        if (errorMessage.includes('Maximum OTP verification attempts exceeded')) {
+          setError(errorMessage);
+        } else {
+          setError(errorMessage);
+        }
       }
     } finally {
       setIsVerifying(false);
