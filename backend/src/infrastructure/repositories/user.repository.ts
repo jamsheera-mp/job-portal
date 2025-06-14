@@ -80,19 +80,16 @@ export class MongoUserRepository implements UserRepository {
     let Model;
     switch (user.role) {
       case 'jobSeeker':
-        Model = JobSeekerModel;
-        break;
+        return (await JobSeekerModel.create(user as JobSeeker)).toObject();
       case 'recruiter':
-        Model = RecruiterModel;
-        break;
+        return (await RecruiterModel.create(user as Recruiter)).toObject(); 
       case 'admin':
         Model = AdminModel;
-        break;
+          return (await AdminModel.create(user as Admin)).toObject(); 
       default:
         throw new Error('Invalid role');
     }
-    const createdUser = await Model.create(user);
-    return createdUser.toObject();
+    
   }
 
   async findByEmail(email: string): Promise<User | null> {

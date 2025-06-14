@@ -1,6 +1,7 @@
 import { type FC } from 'react';
 import { Search, MapPin, Briefcase, Users, Code, PenTool, BarChart3, Shield, Heart, Wrench, Laptop, Building } from 'lucide-react';
-import Header from '../../../components/Header';
+import Header from '../../../components/Header2';
+import Footer from '../../../components/Footer';
 
 interface JobCategory {
   id: string;
@@ -62,164 +63,116 @@ const HomePage: FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
-      <section className="bg-gradient-to-r from-blue-600 to-purple-700 py-20">
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Find Your Dream Job Today
-          </h2>
-          <p className="text-xl text-blue-100 mb-8">
-            Connect with top employers or find qualified talent
-          </p>
-          <div className="relative max-w-2xl mx-auto">
-            <div className="flex items-center bg-white rounded-full shadow-lg overflow-hidden">
-              <input
-                type="text"
-                placeholder="Search for jobs, skills, companies"
-                className="flex-1 px-6 py-4 text-gray-700 focus:outline-none text-lg"
-              />
-              <button className="bg-blue-600 hover:bg-blue-700 p-4 transition-colors">
-                <Search className="w-6 h-6 text-white" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section className="py-16 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="text-center bg-gray-50 rounded-2xl p-8 hover:shadow-lg transition-shadow">
-              <Users className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">I'm a Job Seeker</h3>
-              <p className="text-gray-600 mb-6">
-                Browse and apply to find jobs that match your skills and interests
-              </p>
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors">
-                Get Started
-              </button>
-            </div>
-            <div className="text-center bg-gray-50 rounded-2xl p-8 hover:shadow-lg transition-shadow">
-              <Briefcase className="w-16 h-16 text-purple-600 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">I'm a Recruiter</h3>
-              <p className="text-gray-600 mb-6">
-                Post job ads and find qualified candidates for your company
-              </p>
-              <button className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-medium transition-colors">
-                Get Started
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="text-3xl font-bold text-gray-900">Popular Job Categories</h3>
-            <a href="/jobs" className="text-blue-600 hover:text-blue-700 font-medium">
-              View all &gt;
-            </a>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-12">
-            {jobCategories.map((category) => (
-              <div
-                key={category.id}
-                className="bg-white rounded-lg shadow-sm border hover:shadow-md hover:border-blue-300 transition-all cursor-pointer p-4 text-center group"
-              >
-                <div className="text-blue-600 group-hover:text-blue-700 mb-3 flex justify-center">
-                  {category.icon}
-                </div>
-                <h4 className="font-medium text-gray-900 text-sm mb-1">
-                  {category.name}
-                </h4>
-                <p className="text-xs text-gray-500">
-                  {category.jobCount.toLocaleString()} jobs
-                </p>
-              </div>
-            ))}
-          </div>
-          <div className="grid md:grid-cols-3 gap-6 mb-12">
-            {popularJobs.map((job) => (
-              <div key={job.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <span className="text-sm text-gray-500">May {job.postedDays}, 2024</span>
-                </div>
-                <h4 className="font-semibold text-gray-900 mb-2 leading-tight">
-                  {job.title}
-                </h4>
-                <p className="text-gray-600 mb-3">{job.company}</p>
-                <div className="flex items-center text-sm text-gray-500 mb-2">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  {job.location}
-                </div>
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-sm text-gray-600">{job.experience}</span>
-                  <span className="text-sm text-gray-500">{job.category}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                    Not Interested
-                  </button>
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
-                    Apply
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-      <footer className="bg-blue-700 text-white py-12">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <h5 className="font-semibold mb-4">Company</h5>
-              <ul className="space-y-2 text-blue-100">
-                <li><a href="/about" className="hover:text-white transition-colors">About Us</a></li>
-                <li><a href="/careers" className="hover:text-white transition-colors">Careers</a></li>
-                <li><a href="/contact" className="hover:text-white transition-colors">Contact Us</a></li>
-                <li><a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="/terms" className="hover:text-white transition-colors">Terms & Conditions</a></li>
-              </ul>
-            </div>
-            <div>
-              <h5 className="font-semibold mb-4">Quick Links</h5>
-              <ul className="space-y-2 text-blue-100">
-                <li><a href="/about" className="hover:text-white transition-colors">About Us</a></li>
-                <li><a href="/contact" className="hover:text-white transition-colors">Contact</a></li>
-                <li><a href="/help" className="hover:text-white transition-colors">Help</a></li>
-                <li><a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="/faq" className="hover:text-white transition-colors">FAQs</a></li>
-              </ul>
-            </div>
-            <div>
-              <h5 className="font-semibold mb-4">Contact</h5>
-              <div className="text-blue-100 space-y-2">
-                <p>Malappuram, Kerala</p>
-                <p>+91 9876543210</p>
-                <p>contact@jobconnect.com</p>
-              </div>
-            </div>
-            <div>
-              <h5 className="font-semibold mb-4">Newsletter</h5>
-              <p className="text-blue-100 mb-4">Subscribe to our Newsletter</p>
-              <div className="flex">
+      <main className="flex-grow">
+        <section className="bg-gradient-to-r from-blue-600 to-purple-700 py-20">
+          <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              Find Your Dream Job Today
+            </h2>
+            <p className="text-xl text-blue-100 mb-8">
+              Connect with top employers or find qualified talent
+            </p>
+            <div className="relative max-w-2xl mx-auto">
+              <div className="flex items-center bg-white rounded-full shadow-lg overflow-hidden">
                 <input
-                  type="email"
-                  placeholder="Email"
-                  className="flex-1 px-3 py-2 rounded-l text-gray-900 focus:outline-none"
+                  type="text"
+                  placeholder="Search for jobs, skills, companies"
+                  className="flex-1 px-6 py-4 text-gray-700 focus:outline-none text-lg"
                 />
-                <button className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-r transition-colors">
-                  →
+                <button className="bg-blue-600 hover:bg-blue-700 p-4 transition-colors">
+                  <Search className="w-6 h-6 text-white" />
                 </button>
               </div>
             </div>
           </div>
-          <div className="border-t border-blue-600 mt-8 pt-8 text-center text-blue-100">
-            <p>JobConnect - All rights Reserved Designed by Jamsheera M P</p>
+        </section>
+        <section className="py-16 bg-white">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="text-center bg-gray-50 rounded-2xl p-8 hover:shadow-lg transition-shadow">
+                <Users className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">I'm a Job Seeker</h3>
+                <p className="text-gray-600 mb-6">
+                  Browse and apply to find jobs that match your skills and interests
+                </p>
+                <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+                  Get Started
+                </button>
+              </div>
+              <div className="text-center bg-gray-50 rounded-2xl p-8 hover:shadow-lg transition-shadow">
+                <Briefcase className="w-16 h-16 text-purple-600 mx-auto mb-4" />
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">I'm a Recruiter</h3>
+                <p className="text-gray-600 mb-6">
+                  Post job ads and find qualified candidates for your company
+                </p>
+                <button className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+                  Get Started
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </footer>
+        </section>
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-3xl font-bold text-gray-900">Popular Job Categories</h3>
+              <a href="/jobs" className="text-blue-600 hover:text-blue-700 font-medium">
+                View all 
+              </a>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-12">
+              {jobCategories.map((category) => (
+                <div
+                  key={category.id}
+                  className="bg-white rounded-lg shadow-sm border hover:shadow-md hover:border-blue-300 transition-all cursor-pointer p-4 text-center group"
+                >
+                  <div className="text-blue-600 group-hover:text-blue-700 mb-3 flex justify-center">
+                    {category.icon}
+                  </div>
+                  <h4 className="font-medium text-gray-900 text-sm mb-1">
+                    {category.name}
+                  </h4>
+                  <p className="text-xs text-gray-500">
+                    {category.jobCount.toLocaleString()} jobs
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="grid md:grid-cols-3 gap-6 mb-12">
+              {popularJobs.map((job) => (
+                <div key={job.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="text-sm text-gray-500">May {job.postedDays}, 2024</span>
+                  </div>
+                  <h4 className="font-semibold text-gray-900 mb-2 leading-tight">
+                    {job.title}
+                  </h4>
+                  <p className="text-gray-600 mb-3">{job.company}</p>
+                  <div className="flex items-center text-sm text-gray-500 mb-2">
+                    <MapPin className="w-4 h-4 mr-1" />
+                    {job.location}
+                  </div>
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-sm text-gray-600">{job.experience}</span>
+                    <span className="text-sm text-gray-500">{job.category}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                      Not Interested
+                    </button>
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
+      <Footer />
     </div>
   );
 };

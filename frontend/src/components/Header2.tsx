@@ -1,11 +1,7 @@
 import { type FC } from 'react';
 import { Link } from 'react-router-dom';
 
-interface HeaderProps {
-  onRegisterClick?: () => void;
-}
-
-const Header: FC<HeaderProps> = ({ onRegisterClick }) => {
+const Header: FC = () => {
   return (
     <header className="bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -19,12 +15,9 @@ const Header: FC<HeaderProps> = ({ onRegisterClick }) => {
           </nav>
           <div className="flex items-center space-x-4">
             <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">Login</Link>
-            <button
-              onClick={onRegisterClick}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-            >
+            <Link to="/register" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
               Register
-            </button>
+            </Link>
           </div>
         </div>
       </div>
