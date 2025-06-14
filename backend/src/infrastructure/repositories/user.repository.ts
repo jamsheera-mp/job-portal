@@ -76,52 +76,143 @@ const RecruiterModel = model<Recruiter>('Recruiter', RecruiterSchema);
 const AdminModel = model<Admin>('Admin', AdminSchema);
 
 export class MongoUserRepository implements UserRepository {
-  async create(user: User): Promise<User> {
-    switch (user.role) {
-      case 'jobSeeker':
-        return (await JobSeekerModel.create(user as JobSeeker)).toObject();
-      case 'recruiter':
-        return (await RecruiterModel.create(user as Recruiter)).toObject(); 
-      case 'admin':
-          return (await AdminModel.create(user as Admin)).toObject(); 
-      default:
-        throw new Error('Invalid role');
+ async create(user: User): Promise<User> {
+    try {
+      let createdUser: any;
+      switch (user.role) {
+        case 'jobSeeker':
+          createdUser = (await JobSeekerModel.create(user as JobSeeker)).toObject();
+          break;
+        case 'recruiter':
+          createdUser = (await RecruiterModel.create(user as Recruiter)).toObject();
+          break;
+        case 'admin':
+          createdUser = (await AdminModel.create(user as Admin)).toObject();
+          break;
+        default:
+          throw new Error('Invalid role');
+      }
+
+      if (!createdUser._id) {
+        throw new Error('MongoDB failed to generate an _id for the user');
+      }
+
+      // Transform _id to id to match the User interface
+      const userWithId = {
+        ...createdUser,
+        id: createdUser._id.toString(),
+      };
+      delete userWithId._id; // Remove the _id field
+      delete userWithId.__v; // Remove the version key
+
+      return userWithId as User;
+    } catch (error: any) {
+      console.error('Error creating user in MongoDB:', error.message);
+      throw new Error(`Failed to create user in MongoDB: ${error.message}`);
     }
-    
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    let user = await JobSeekerModel.findOne({ email }).lean();
-    if (user) return user;
-    user = await RecruiterModel.findOne({ email }).lean();
-    if (user) return user;
-    user = await AdminModel.findOne({ email }).lean();
-    return user;
+    try {
+      let user = await JobSeekerModel.findOne({ email }).lean();
+      if (user) {
+        return {
+          ...user,
+          id: user._id.toString(),
+          _id: undefined,
+          __v: undefined,
+        } as User;
+      }
+      user = await RecruiterModel.findOne({ email }).lean();
+      if (user) {
+        return {
+          ...user,
+          id: user._id.toString(),
+          _id: undefined,
+          __v: undefined,
+        } as User;
+      }
+      user = await AdminModel.findOne({ email }).lean();
+      if (user) {
+        return {
+          ...user,
+          id: user._id.toString(),
+          _id: undefined,
+          __v: undefined,
+        } as User;
+      }
+      return null;
+    } catch (error: any) {
+      console.error('Error finding user by email:', error.message);
+      throw new Error(`Failed to find user by email: ${error.message}`);
+    }
   }
 
   async findById(id: string): Promise<User | null> {
-    let user = await JobSeekerModel.findById(id).lean();
-    if (user) return user;
-    user = await RecruiterModel.findById(id).lean();
-    if (user) return user;
-    user = await AdminModel.findById(id).lean();
-    return user;
+    try {
+      let user = await JobSeekerModel.findById(id).lean();
+      if (user) {
+        return {
+          ...user,
+          id: user._id.toString(),
+          _id: undefined,
+          __v: undefined,
+        } as User;
+      }
+      user = await RecruiterModel.findById(id).lean();
+      if (user) {
+        return {
+          ...user,
+          id: user._id.toString(),
+          _id: undefined,
+          __v: undefined,
+        } as User;
+      }
+      user = await AdminModel.findById(id).lean();
+      if (user) {
+        return {
+          ...user,
+          id: user._id.toString(),
+          _id: undefined,
+          __v: undefined,
+        } as User;
+      }
+      return null;
+    } catch (error: any) {
+      console.error('Error finding user by ID:', error.message);
+      throw new Error(`Failed to find user by ID: ${error.message}`);
+    }
   }
 
   async update(id: string, data: Partial<User>): Promise<User | null> {
-    let Model;
-    let user = await JobSeekerModel.findById(id).lean();
-    if (user) Model = JobSeekerModel;
-    else {
-      user = await RecruiterModel.findById(id).lean();
-      if (user) Model = RecruiterModel;
+    try {
+      let Model;
+      let user = await JobSeekerModel.findById(id).lean();
+      if (user) Model = JobSeekerModel;
       else {
-        user = await AdminModel.findById(id).lean();
-        if (user) Model = AdminModel;
-        else return null;
+        user = await RecruiterModel.findById(id).lean();
+        if (user) Model = RecruiterModel;
+        else {
+          user = await AdminModel.findById(id).lean();
+          if (user) Model = AdminModel;
+          else return null;
+        }
       }
+      const updatedUser = await Model.findByIdAndUpdate(
+        id,
+        { ...data, updatedAt: new Date() },
+        { new: true }
+      ).lean();
+      if (!updatedUser) return null;
+      return {
+        ...updatedUser,
+        id: updatedUser._id.toString(),
+        _id: undefined,
+        __v: undefined,
+      } as User;
+    } catch (error: any) {
+      console.error('Error updating user:', error.message);
+      throw new Error(`Failed to update user: ${error.message}`);
     }
-    const updatedUser = await Model.findByIdAndUpdate(id, { ...data, updatedAt: new Date() }, { new: true }).lean();
-    return updatedUser;
   }
 }

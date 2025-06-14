@@ -1,22 +1,42 @@
 import { TempUserModel } from '../../domain/entities/tempUser.entity';
 import nodemailer from 'nodemailer';
+import dotenv from 'dotenv'
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
+
+
+dotenv.config()
 
 export class OtpService {
   private transporter: nodemailer.Transporter;
 
- constructor() {
-  this.transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  } as SMTPTransport.Options);
-}
 
+  constructor() {
+    // Validate environment variables
+    const requiredEnvVars = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS'];
+    const missingEnvVars = requiredEnvVars.filter((varName) => !process.env[varName]);
+    if (missingEnvVars.length > 0) {
+      throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+    }
+
+    this.transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT),
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    } as SMTPTransport.Options);
+
+    // Verify the transporter configuration at startup
+    this.transporter.verify((error, success) => {
+      if (error) {
+        console.error('SMTP Transporter Error:', error.message);
+      } else {
+        console.log('SMTP Transporter Ready:', success);
+      }
+    });
+  }
   private generateOtpCode(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }

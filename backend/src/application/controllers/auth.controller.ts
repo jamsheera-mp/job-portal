@@ -102,6 +102,37 @@ export class AuthController {
       res.status(400).json({ message: error.message || 'OTP verification failed' });
     }
   }
+  
+  async resendOtp(req: Request, res: Response): Promise<void> {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        res.status(400).json({ message: 'Email is required' });
+        return;
+      }
+
+      const tempUser = await this.otpService.getTempUser(email);
+      if (!tempUser) {
+        res.status(404).json({ message: 'Temporary user data not found. Please register again.' });
+        return;
+      }
+
+      // Reuse the existing user data to generate a new OTP
+      const userData = {
+        email: tempUser.email,
+        password: tempUser.password,
+        role: tempUser.role,
+        name: tempUser.name,
+        phone: tempUser.phone,
+        company: tempUser.company,
+      };
+
+      await this.otpService.generateOtp(email, userData);
+      res.status(200).json({ message: 'OTP resent successfully' });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || 'Failed to resend OTP' });
+    }
+  }
 
   async login(req: Request, res: Response): Promise<void> {
     try {
