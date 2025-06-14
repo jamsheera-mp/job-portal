@@ -11,6 +11,7 @@ export class UserEntity {
       email: data.email,
       password: data.password,
       role: data.role,
+      phone:data.phone,
       isBlocked: data.isBlocked ?? false,
       isEmailVerified: data.isEmailVerified ?? false,
       createdAt: data.createdAt ?? new Date(),

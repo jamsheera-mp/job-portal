@@ -3,6 +3,7 @@ export interface User {
   email: string;
   password: string;
   role: 'jobSeeker' | 'recruiter' | 'admin';
+  phone?: string;
   isBlocked?: boolean;
   isEmailVerified?: boolean;
   createdAt?: Date;

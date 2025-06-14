@@ -104,6 +104,8 @@ const RegisterPage: FC = () => {
       return;
     }
     setLoading(true);
+    setErrors({ fullName: '', email: '', phone: '', password: '', role: '', companyName: '' });
+    setSuccess('');
     const abortController = new AbortController();
     setController(abortController);
     try {
@@ -112,42 +114,44 @@ const RegisterPage: FC = () => {
         password: formData.password,
         role,
         name: formData.fullName,
+        phone: formData.phone,
         ...(role === 'recruiter' && { company: { name: formData.companyName } }),
       };
       console.log('Register Request Payload:', data);
       const response = await api.register(data, abortController.signal);
       console.log('Register Response:', response);
       if (response.message === 'User registered, OTP sent to email') {
+        console.log('Registration successful, setting success message and redirecting...');
         setSuccess('Registration successful! Redirecting to OTP verification...');
-        setErrors({ fullName: '', email: '', phone: '', password: '', role: '', companyName: '' });
         setTimeout(() => {
-          navigate(`/verify-otp?email=${encodeURIComponent(formData.email)}&userId=${response.userId}`);
+          console.log('Navigating to /verify-otp with email:', formData.email);
+          navigate(`/verify-otp?email=${encodeURIComponent(formData.email)}`);
         }, 1500);
       } else {
+        console.log('Unexpected response message:', response.message);
         setErrors({
           fullName: '',
-          email: response.message.includes('email') ? response.message : '',
+          email: response.message || 'Registration failed',
           phone: '',
           password: '',
           role: '',
           companyName: '',
         });
-        setSuccess('');
       }
     } catch (err: any) {
       if (err.name === 'AbortError') {
         console.log('Request aborted');
       } else {
         console.error('Register Error:', err);
+        console.error('Error Response:', err.response?.data);
         setErrors({
           fullName: '',
-          email: 'Registration failed',
+          email: err.response?.data?.message || err.message || 'Registration failed',
           phone: '',
           password: '',
           role: '',
           companyName: '',
         });
-        setSuccess('');
       }
     } finally {
       setLoading(false);
@@ -155,7 +159,6 @@ const RegisterPage: FC = () => {
     }
   };
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (controller) {

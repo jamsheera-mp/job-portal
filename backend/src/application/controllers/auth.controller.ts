@@ -21,7 +21,7 @@ export class AuthController {
 
   async register(req: Request, res: Response): Promise<void> {
     try {
-      const { email, password, role, name, company }: RegisterRequestDto = req.body;
+      const { email, password, role, name, phone, company }: RegisterRequestDto = req.body;
       if (!email || !password || !role) {
         res.status(400).json({ message: 'Email, password, and role are required' });
         return;
@@ -30,11 +30,21 @@ export class AuthController {
         res.status(400).json({ message: 'Name is required for job seekers' });
         return;
       }
+      if (role === 'recruiter' && (!company || !company.name)) {
+        res.status(400).json({ message: 'Company name is required for recruiters' });
+        return;
+      }
 
-      const userData = { email, password, role, name, company, isEmailVerified: false };
-      const user = await this.registerUserUseCase.execute(userData);
-      await this.otpService.generateOtp(user.id!);
-      res.status(201).json({ message: 'User registered, OTP sent to email', userId: user.id } as RegisterResponseDto);
+      const existingUser = await this.userRepository.findByEmail(email);
+      if (existingUser) {
+        res.status(400).json({ message: 'Email already exists' });
+        return;
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const userData = { email, password: hashedPassword, role, name, phone, company };
+      await this.otpService.generateOtp(email, userData);
+      res.status(201).json({ message: 'User registered, OTP sent to email', email } as RegisterResponseDto);
     } catch (error: any) {
       res.status(400).json({ message: error.message || 'Registration failed' });
     }
@@ -42,25 +52,41 @@ export class AuthController {
 
   async verifyOtp(req: Request, res: Response): Promise<void> {
     try {
-      const { userId, otp }: VerifyOtpRequestDto = req.body;
-      if (!userId || !otp) {
-        res.status(400).json({ message: 'User ID and OTP are required' });
+      const { email, otp }: VerifyOtpRequestDto = req.body;
+      if (!email || !otp) {
+        res.status(400).json({ message: 'Email and OTP are required' });
         return;
       }
 
-      const isValid = await this.otpService.verifyOtp(userId, otp);
+      const isValid = await this.otpService.verifyOtp(email, otp);
       if (!isValid) {
         res.status(400).json({ message: 'Invalid or expired OTP' });
         return;
       }
 
-      const user = await this.userRepository.findById(userId);
-      if (!user) {
-        res.status(404).json({ message: 'User not found' });
+      const tempUser = await this.otpService.getTempUser(email);
+      if (!tempUser) {
+        res.status(404).json({ message: 'Temporary user data not found' });
         return;
       }
 
-      await this.userRepository.update(userId, { isEmailVerified: true });
+      const userData = {
+        email: tempUser.email,
+        password: tempUser.password,
+        role: tempUser.role,
+        name: tempUser.name,
+        phone: tempUser.phone,
+        company: tempUser.company,
+        isEmailVerified: true,
+      };
+
+      const user = await this.registerUserUseCase.execute(userData);
+      if (!user.id) {
+        throw new Error('Failed to create user: user ID is missing');
+      }
+
+      await this.otpService.deleteTempUser(email);
+
       const accessToken = this.jwtService.generateAccessToken(user);
       const refreshToken = await this.jwtService.generateRefreshToken(user);
 
@@ -69,7 +95,7 @@ export class AuthController {
 
       const redirectUrl = this.getRedirectUrl(user.role);
       res.status(200).json({
-        user: { id: user.id!, email: user.email, role: user.role, isEmailVerified: true },
+        user: { id: user.id, email: user.email, role: user.role, isEmailVerified: true, phone: user.phone },
         redirectUrl,
       } as VerifyOtpResponseDto);
     } catch (error: any) {
@@ -105,7 +131,7 @@ export class AuthController {
 
       const redirectUrl = this.getRedirectUrl(user.role);
       res.status(200).json({
-        user: { id: user.id!, email: user.email, role: user.role, isEmailVerified: true },
+        user: { id: user.id!, email: user.email, role: user.role, isEmailVerified: true, phone: user.phone },
         redirectUrl,
       } as LoginResponseDto);
     } catch (error: any) {

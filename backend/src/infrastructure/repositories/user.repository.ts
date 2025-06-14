@@ -77,14 +77,12 @@ const AdminModel = model<Admin>('Admin', AdminSchema);
 
 export class MongoUserRepository implements UserRepository {
   async create(user: User): Promise<User> {
-    let Model;
     switch (user.role) {
       case 'jobSeeker':
         return (await JobSeekerModel.create(user as JobSeeker)).toObject();
       case 'recruiter':
         return (await RecruiterModel.create(user as Recruiter)).toObject(); 
       case 'admin':
-        Model = AdminModel;
           return (await AdminModel.create(user as Admin)).toObject(); 
       default:
         throw new Error('Invalid role');

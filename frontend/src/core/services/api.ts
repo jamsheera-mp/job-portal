@@ -5,11 +5,12 @@ interface RegisterData {
   password: string;
   role: string;
   name?: string;
+  phone?: string;
   company?: object;
 }
 
 interface VerifyOtpData {
-  userId: string;
+  email: string; // Use email instead of userId
   otp: string;
 }
 
