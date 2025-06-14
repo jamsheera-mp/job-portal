@@ -59,6 +59,8 @@ export class AuthController {
       }
 
       const isValid = await this.otpService.verifyOtp(email, otp);
+      console.log('otp',otp);
+      
       if (!isValid) {
         res.status(400).json({ message: 'Invalid or expired OTP' });
         return;

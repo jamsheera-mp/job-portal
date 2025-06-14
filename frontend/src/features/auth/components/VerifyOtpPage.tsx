@@ -17,6 +17,7 @@ const VerifyOtpPage: FC = () => {
   const [controller, setController] = useState<AbortController | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isResending, setIsResending] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     if (!email) {
@@ -28,7 +29,8 @@ const VerifyOtpPage: FC = () => {
   }, [email, navigate]);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+   let timer: ReturnType<typeof setTimeout>;
+
     if (resendCooldown > 0) {
       timer = setTimeout(() => {
         setResendCooldown((prev) => prev - 1);
@@ -42,11 +44,12 @@ const VerifyOtpPage: FC = () => {
       setError('Email is missing. Please register again.');
       return;
     }
+    setIsVerifying(true);
+    setError('');
+    setSuccess('');
     const abortController = new AbortController();
     setController(abortController);
     try {
-      setError('');
-      setSuccess('');
       const response = await api.verifyOtp({ email, otp }, abortController.signal);
       if (response.user && response.redirectUrl) {
         dispatch(setUser(response.user));
@@ -61,6 +64,7 @@ const VerifyOtpPage: FC = () => {
         setError(err.response?.data?.message || 'OTP verification failed');
       }
     } finally {
+      setIsVerifying(false);
       setController(null);
     }
   };
@@ -78,7 +82,7 @@ const VerifyOtpPage: FC = () => {
     try {
       const response = await api.resendOtp({ email }, abortController.signal);
       setSuccess(response.message || 'OTP resent successfully');
-      setResendCooldown(30); // 30-second cooldown
+      setResendCooldown(30);
     } catch (err: any) {
       if (err.name === 'AbortError') {
         console.log('Request aborted');
@@ -121,14 +125,19 @@ const VerifyOtpPage: FC = () => {
                 onChange={(e) => setOtp(e.target.value)}
                 className="block w-full px-3 py-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter the OTP"
+                disabled={isVerifying || isResending}
               />
             </div>
             <button
               onClick={handleVerifyOtp}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium transition-colors"
-              disabled={!email}
+              className={`w-full py-3 rounded-lg font-medium transition-colors ${
+                isVerifying || !email
+                  ? 'bg-blue-400 text-white cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+              disabled={isVerifying || !email}
             >
-              Verify OTP
+              {isVerifying ? 'Verifying...' : 'Verify OTP'}
             </button>
             <button
               onClick={handleResendOtp}

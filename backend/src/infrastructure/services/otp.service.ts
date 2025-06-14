@@ -43,6 +43,8 @@ export class OtpService {
 
   async generateOtp(email: string, userData: any): Promise<void> {
     const otp = this.generateOtpCode();
+    console.log('otp:',otp);
+    
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
     const existingTempUser = await TempUserModel.findOne({ email });

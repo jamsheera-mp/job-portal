@@ -13,7 +13,6 @@ export interface User {
 export interface JobSeeker extends User {
   name: string;
   bio?: string;
-  phone?: string;
   skills?: string[];
   resumeUrl?: string;
   githubUrl?: string;
