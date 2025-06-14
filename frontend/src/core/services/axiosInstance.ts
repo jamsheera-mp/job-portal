@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
+import axios, { type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -12,7 +12,7 @@ const axiosInstance: AxiosInstance = axios.create({
 
 // Request Interceptor
 axiosInstance.interceptors.request.use(
-  (config: AxiosRequestConfig) => {
+  (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
     // Add any request modifications here (e.g., add auth token if needed)
     console.log(`Request sent to ${config.url}:`, config.data);
     return config;
@@ -23,24 +23,29 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Response Interceptor
-axiosInstance.interceptors.response.use(
-  (response: AxiosResponse) => {
-    // Handle successful responses
-    return response;
+// Optional: Log all requests (for debugging)
+axiosInstance.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) : InternalAxiosRequestConfig=> {
+    console.log(` Request: ${config.method?.toUpperCase()} ${config.url}`, config.data);
+    return config;
   },
   (error) => {
-    // Handle errors globally
+    console.error(' Request error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Optional: Handle all responses/errors globally
+axiosInstance.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  (error) => {
     if (error.response) {
-      console.error('Response error:', error.response.data);
-      // Example: If 401 Unauthorized, redirect to login
+      console.error(' Response error:', error.response.data);
       if (error.response.status === 401) {
-        window.location.href = '/login';
+        window.location.href = '/login'; // or show toast
       }
-    } else if (error.request) {
-      console.error('No response received:', error.request);
     } else {
-      console.error('Error setting up request:', error.message);
+      console.error(' Network error:', error.message);
     }
     return Promise.reject(error);
   }

@@ -5,6 +5,8 @@ import { JwtService } from '../../infrastructure/services/jwt.service';
 import { OtpService } from '../../infrastructure/services/otp.service';
 import { RegisterRequestDto, RegisterResponseDto, VerifyOtpRequestDto, VerifyOtpResponseDto, LoginRequestDto, LoginResponseDto } from '../dtos/auth.dto';
 import bcrypt from 'bcryptjs';
+import passport from '../../infrastructure/auth/passport.config';
+import { User } from '../../domain/interfaces/user.interface';
 
 export class AuthController {
   private readonly registerUserUseCase: RegisterUserUseCase;
@@ -155,7 +157,7 @@ export class AuthController {
       }
 
       if (!user.isEmailVerified) {
-        await this.otpService.generateOtp(user.id!);
+        await this.otpService.generateOtp(user.email, user);
         res.status(403).json({ message: 'Email not verified, OTP sent', userId: user.id });
         return;
       }
@@ -174,6 +176,52 @@ export class AuthController {
     } catch (error: any) {
       res.status(400).json({ message: error.message || 'Login failed' });
     }
+  }
+
+    // Google Sign-In Route
+  googleAuth(req: Request, res: Response): void {
+    passport.authenticate('google')(req, res);
+  }
+
+  // Google Callback Route
+  async googleAuthCallback(req: Request, res: Response): Promise<void> {
+    passport.authenticate('google', { session: false }, async (err, user) => {
+      if (err || !user) {
+        return res.redirect('http://localhost:5173/register?error=' + encodeURIComponent(err?.message || 'Google authentication failed'));
+      }
+
+      const accessToken = this.jwtService.generateAccessToken(user);
+      const refreshToken = await this.jwtService.generateRefreshToken(user);
+
+      res.cookie('accessToken', accessToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 60 * 60 * 1000 });
+      res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
+
+      const redirectUrl = this.getRedirectUrl(user.role);
+      res.redirect(redirectUrl);
+    })(req, res);
+  }
+
+  // LinkedIn Sign-In Route
+  linkedInAuth(req: Request, res: Response): void {
+    passport.authenticate('linkedin')(req, res);
+  }
+
+  // LinkedIn Callback Route
+  async linkedInAuthCallback(req: Request, res: Response): Promise<void> {
+    passport.authenticate('linkedin', { session: false }, async (err: any, user: User | false) => {
+      if (err || !user) {
+        return res.redirect('http://localhost:5173/register?error=' + encodeURIComponent(err?.message || 'LinkedIn authentication failed'));
+      }
+
+      const accessToken = this.jwtService.generateAccessToken(user);
+      const refreshToken = await this.jwtService.generateRefreshToken(user);
+
+      res.cookie('accessToken', accessToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 60 * 60 * 1000 });
+      res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
+
+      const redirectUrl = this.getRedirectUrl(user.role);
+      res.redirect(redirectUrl);
+    })(req, res);
   }
 
   private getRedirectUrl(role: string): string {

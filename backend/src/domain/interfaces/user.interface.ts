@@ -1,5 +1,6 @@
 export interface User {
   id?: string;
+  name?: string,
   email: string;
   password: string;
   role: 'jobSeeker' | 'recruiter' | 'admin';
@@ -11,7 +12,7 @@ export interface User {
 }
 
 export interface JobSeeker extends User {
-  name: string;
+  
   bio?: string;
   skills?: string[];
   resumeUrl?: string;
