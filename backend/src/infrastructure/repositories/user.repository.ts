@@ -51,16 +51,24 @@ const AdminSchema = new Schema<Admin>({
 });
 
 JobSeekerSchema.pre('save', async function (next) {
-  if (this.isModified('password')) {
+  if (this.isModified('password') && !this.password.startsWith('$2b$')) {
+    console.log('[JobSeekerSchema] Hashing password for:', this.email);
     this.password = await bcrypt.hash(this.password, 10);
+  } else {
+    console.log('[JobSeekerSchema] Skipping password hashing for:', this.email);
   }
+  this.updatedAt = new Date();
   next();
 });
 
 RecruiterSchema.pre('save', async function (next) {
-  if (this.isModified('password')) {
+  if (this.isModified('password') && !this.password.startsWith('$2b$')) {
+    console.log('[RecruiterSchema] Hashing password for:', this.email);
     this.password = await bcrypt.hash(this.password, 10);
+  } else {
+    console.log('[RecruiterSchema] Skipping password hashing for:', this.email);
   }
+  this.updatedAt = new Date();
   next();
 });
 

@@ -35,7 +35,16 @@ const handleSubmit = async (e: React.FormEvent) => {
   const abortController = new AbortController();
   setController(abortController);
   try {
-    const response = await api.login(formData, abortController.signal);
+    const sanitizedData = {
+      email: formData.email.trim(),
+      password: formData.password.trim(),
+    };
+    console.log('[LoginPage] Sending login request:', {
+      email: sanitizedData.email,
+      password: '[REDACTED]',
+    });
+
+    const response = await api.login(sanitizedData, abortController.signal);
     console.log('[LoginPage] API response:', response);
     if (response.user && response.redirectUrl) {
       console.log('[LoginPage] Dispatching user and navigating:', { user: response.user, redirectUrl: response.redirectUrl });

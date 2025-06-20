@@ -8,6 +8,7 @@ export class UserEntity {
       throw new Error('Email, password, and role are required');
     }
     return new UserEntity({
+      id:data.id,
       email: data.email,
       password: data.password,
       role: data.role,
