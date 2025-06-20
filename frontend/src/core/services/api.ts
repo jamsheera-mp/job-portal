@@ -1,3 +1,4 @@
+// frontend/src/core/services/api.ts
 import axiosInstance from './axiosInstance';
 
 interface RegisterData {
@@ -32,45 +33,111 @@ interface User {
   role: string;
   isEmailVerified: boolean;
   phone?: string;
+  name?: string;
 }
 
 interface AuthResponse {
-  user: User;
-  redirectUrl: string;
+  message?: string;
+  userId?: string;
+  user?: User;
+  redirectUrl?: string;
 }
 
 class ApiService {
   async register(data: RegisterData, signal?: AbortSignal): Promise<{ message: string; email: string }> {
-    const response = await axiosInstance.post('/auth/register', data, { signal });
-    return response.data;
+    console.log('[API] Register request:', data);
+    try {
+      const response = await axiosInstance.post('/auth/register', data, { signal });
+      console.log('[API] Register response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('[API] Register error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error;
+    }
   }
 
   async resendOtp(data: { email: string }, signal?: AbortSignal): Promise<{ message: string }> {
-    const response = await axiosInstance.post('/auth/resend-otp', data, { signal });
-    return response.data;
+    console.log('[API] Resend OTP request:', data);
+    try {
+      const response = await axiosInstance.post('/auth/resend-otp', data, { signal });
+      console.log('[API] Resend OTP response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('[API] Resend OTP error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error;
+    }
   }
 
   async verifyOtp(data: VerifyOtpData, signal?: AbortSignal): Promise<AuthResponse> {
-    const response = await axiosInstance.post('/auth/verify-otp', data, { signal });
-    return response.data;
+    console.log('[API] Verify OTP request:', data);
+    try {
+      const response = await axiosInstance.post('/auth/verify-otp', data, { signal });
+      console.log('[API] Verify OTP response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('[API] Verify OTP error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error;
+    }
   }
 
   async login(data: LoginData, signal?: AbortSignal): Promise<AuthResponse> {
-    const response = await axiosInstance.post('/auth/login', data, { signal });
-    return response.data;
+    console.log('[API] Login request:', data);
+    try {
+      const response = await axiosInstance.post('/auth/login', data, { signal });
+      console.log('[API] Login response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('[API] Login error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error;
+    }
   }
 
-  //  Google Sign-In
+  async logout(signal?: AbortSignal): Promise<{ message: string }> {
+    console.log('[API] Logout request');
+    try {
+      const response = await axiosInstance.post('/auth/logout', {}, { signal });
+      console.log('[API] Logout response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('[API] Logout error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error;
+    }
+  }
+  
+  /*
+
   googleSignIn(): void {
-    const oauthUrl = `${import.meta.env.VITE_BACKEND_URL}/auth/google`;
+    const oauthUrl = `http://localhost:5000/api/auth/google`;
+    console.log('[API] Redirecting to Google OAuth:', oauthUrl);
     window.location.href = oauthUrl;
   }
 
-  //  LinkedIn Sign-In
   linkedInSignIn(): void {
-    const oauthUrl = `${import.meta.env.VITE_BACKEND_URL}/auth/linkedin`;
+    const oauthUrl = `http://localhost:5000/api/auth/linkedin`;
+    console.log('[API] Redirecting to LinkedIn OAuth:', oauthUrl);
     window.location.href = oauthUrl;
   }
+    */
 }
 
 export const api = new ApiService();

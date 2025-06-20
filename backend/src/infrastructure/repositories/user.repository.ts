@@ -75,37 +75,40 @@ const JobSeekerModel = model<JobSeeker>('JobSeeker', JobSeekerSchema);
 const RecruiterModel = model<Recruiter>('Recruiter', RecruiterSchema);
 const AdminModel = model<Admin>('Admin', AdminSchema);
 
+
+// Helper function to transform MongoDB document to User interface
+const transformToUser = (doc: any): User => {
+  if (!doc || !doc._id) {
+    throw new Error('Invalid document: _id is missing');
+  }
+  const user = {
+    ...doc,
+    id: doc._id.toString(),
+  };
+  delete user._id;
+  delete user.__v;
+  return user as User;
+};
+
+
 export class MongoUserRepository implements UserRepository {
- async create(user: User): Promise<User> {
+  async create(user: User): Promise<User> {
     try {
       let createdUser: any;
       switch (user.role) {
         case 'jobSeeker':
-          createdUser = (await JobSeekerModel.create(user as JobSeeker)).toObject();
+          createdUser = await JobSeekerModel.create(user as JobSeeker);
           break;
         case 'recruiter':
-          createdUser = (await RecruiterModel.create(user as Recruiter)).toObject();
+          createdUser = await RecruiterModel.create(user as Recruiter);
           break;
         case 'admin':
-          createdUser = (await AdminModel.create(user as Admin)).toObject();
+          createdUser = await AdminModel.create(user as Admin);
           break;
         default:
           throw new Error('Invalid role');
       }
-
-      if (!createdUser._id) {
-        throw new Error('MongoDB failed to generate an _id for the user');
-      }
-
-      // Transform _id to id to match the User interface
-      const userWithId = {
-        ...createdUser,
-        id: createdUser._id.toString(),
-      };
-      delete userWithId._id; // Remove the _id field
-      delete userWithId.__v; // Remove the version key
-
-      return userWithId as User;
+      return transformToUser(createdUser.toObject());
     } catch (error: any) {
       console.error('Error creating user in MongoDB:', error.message);
       throw new Error(`Failed to create user in MongoDB: ${error.message}`);
@@ -115,32 +118,11 @@ export class MongoUserRepository implements UserRepository {
   async findByEmail(email: string): Promise<User | null> {
     try {
       let user = await JobSeekerModel.findOne({ email }).lean();
-      if (user) {
-        return {
-          ...user,
-          id: user._id.toString(),
-          _id: undefined,
-          __v: undefined,
-        } as User;
-      }
+      if (user) return transformToUser(user);
       user = await RecruiterModel.findOne({ email }).lean();
-      if (user) {
-        return {
-          ...user,
-          id: user._id.toString(),
-          _id: undefined,
-          __v: undefined,
-        } as User;
-      }
+      if (user) return transformToUser(user);
       user = await AdminModel.findOne({ email }).lean();
-      if (user) {
-        return {
-          ...user,
-          id: user._id.toString(),
-          _id: undefined,
-          __v: undefined,
-        } as User;
-      }
+      if (user) return transformToUser(user);
       return null;
     } catch (error: any) {
       console.error('Error finding user by email:', error.message);
@@ -151,32 +133,11 @@ export class MongoUserRepository implements UserRepository {
   async findById(id: string): Promise<User | null> {
     try {
       let user = await JobSeekerModel.findById(id).lean();
-      if (user) {
-        return {
-          ...user,
-          id: user._id.toString(),
-          _id: undefined,
-          __v: undefined,
-        } as User;
-      }
+      if (user) return transformToUser(user);
       user = await RecruiterModel.findById(id).lean();
-      if (user) {
-        return {
-          ...user,
-          id: user._id.toString(),
-          _id: undefined,
-          __v: undefined,
-        } as User;
-      }
+      if (user) return transformToUser(user);
       user = await AdminModel.findById(id).lean();
-      if (user) {
-        return {
-          ...user,
-          id: user._id.toString(),
-          _id: undefined,
-          __v: undefined,
-        } as User;
-      }
+      if (user) return transformToUser(user);
       return null;
     } catch (error: any) {
       console.error('Error finding user by ID:', error.message);
@@ -204,12 +165,7 @@ export class MongoUserRepository implements UserRepository {
         { new: true }
       ).lean();
       if (!updatedUser) return null;
-      return {
-        ...updatedUser,
-        id: updatedUser._id.toString(),
-        _id: undefined,
-        __v: undefined,
-      } as User;
+      return transformToUser(updatedUser);
     } catch (error: any) {
       console.error('Error updating user:', error.message);
       throw new Error(`Failed to update user: ${error.message}`);

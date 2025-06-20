@@ -1,313 +1,420 @@
 import { type FC, useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Building, User, Mail, Phone, Lock } from 'lucide-react';
+import { useDispatch } from 'react-redux';
+import { setUser } from '../slices/authSlice';
 import { api } from '../../../core/services/api';
 import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
 
+type Role = 'jobSeeker' | 'recruiter';
+
 const RegisterPage: FC = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const roleParam = searchParams.get('role');
+  const [role, setRole] = useState<Role>(roleParam === 'recruiter' ? 'recruiter' : 'jobSeeker');
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
     email: '',
     phone: '',
     password: '',
-    role: 'jobSeeker',
-    companyName: '',
-    companyLogoUrl: '',
-    companyDescription: '',
-    companyWebsite: '',
-    companyIndustry: '',
-    companyLocation: '',
+    role: role,
+    companyName: role === 'recruiter' ? '' : undefined,
   });
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const [errors, setErrors] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    password: '',
+    role: '',
+    companyName: '',
+  });
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
+  const [controller, setController] = useState<AbortController | null>(null);
 
-  // Check for error query parameter (e.g., from failed social login)
-  useEffect(() => {
-    const errorMessage = searchParams.get('error');
-    if (errorMessage) {
-      setError(decodeURIComponent(errorMessage));
+  const validateForm = () => {
+    const newErrors = {
+      fullName: '',
+      email: '',
+      phone: '',
+      password: '',
+      role: '',
+      companyName: '',
+    };
+    let isValid = true;
+
+    if (!formData.fullName) {
+      newErrors.fullName = 'Full name is required';
+      isValid = false;
+    } else if (!/^[A-Za-z\s]{2,}$/.test(formData.fullName)) {
+      newErrors.fullName = 'Full name must be at least 2 characters and contain only letters and spaces';
+      isValid = false;
     }
-  }, [searchParams]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+      isValid = false;
+    }
+
+    if (!formData.phone) {
+      newErrors.phone = 'Phone number is required';
+      isValid = false;
+    } else if (!/^\d{10}$/.test(formData.phone)) {
+      newErrors.phone = 'Phone number must be exactly 10 digits';
+      isValid = false;
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+      isValid = false;
+    } else if (!/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(formData.password)) {
+      newErrors.password = 'Password must be at least 8 characters and include letters, numbers, and special characters';
+      isValid = false;
+    }
+
+    if (!role) {
+      newErrors.role = 'Role is required';
+      isValid = false;
+    }
+
+    if (role === 'recruiter' && !formData.companyName) {
+      newErrors.companyName = 'Company name is required for recruiters';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
-
+    if (!validateForm()) {
+      return;
+    }
+    setLoading(true);
+    setErrors({ fullName: '', email: '', phone: '', password: '', role: '', companyName: '' });
+    setSuccess('');
+    const abortController = new AbortController();
+    setController(abortController);
     try {
-      const data: any = {
+      const data = {
         email: formData.email,
         password: formData.password,
-        role: formData.role,
+        role,
+        name: formData.fullName,
         phone: formData.phone,
+        ...(role === 'recruiter' && { company: { name: formData.companyName } }),
       };
-
-      if (formData.role === 'jobSeeker') {
-        data.name = formData.name;
-      } else if (formData.role === 'recruiter') {
-        data.company = {
-          name: formData.companyName,
-          logoUrl: formData.companyLogoUrl || undefined,
-          description: formData.companyDescription || undefined,
-          website: formData.companyWebsite || undefined,
-          industry: formData.companyIndustry || undefined,
-          location: formData.companyLocation || undefined,
-        };
+      console.log('Register Request Payload:', data);
+      const response = await api.register(data, abortController.signal);
+      console.log('Register Response:', response);
+      if (response.message === 'User registered, OTP sent to email') {
+        console.log('Registration successful, setting success message and redirecting...');
+        setSuccess('Registration successful! Redirecting to OTP verification...');
+        setTimeout(() => {
+          console.log('Navigating to /verify-otp with email:', formData.email);
+          navigate(`/verify-otp?email=${encodeURIComponent(formData.email)}`);
+        }, 1500);
+      } else {
+        console.log('Unexpected response message:', response.message);
+        setErrors({
+          fullName: '',
+          email: response.message || 'Registration failed',
+          phone: '',
+          password: '',
+          role: '',
+          companyName: '',
+        });
       }
-
-      const response = await api.register(data);
-      navigate(`/verify-otp?email=${encodeURIComponent(formData.email)}`);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed');
+      if (err.name === 'AbortError') {
+        console.log('Request aborted');
+      } else {
+        console.error('Register Error:', err);
+        console.error('Error Response:', err.response?.data);
+        setErrors({
+          fullName: '',
+          email: err.response?.data?.message || err.message || 'Registration failed',
+          phone: '',
+          password: '',
+          role: '',
+          companyName: '',
+        });
+      }
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+      setController(null);
     }
   };
 
   const handleGoogleSignIn = async () => {
-    try {
-      await api.googleSignIn();
-    } catch (err: any) {
-      setError('Failed to initiate Google Sign-In');
-    }
-  };
+  try {
+    await api.googleSignIn();
+  } catch (err: any) {
+    setErrors({
+      fullName: '',
+      email: 'Failed to initiate Google Sign-In',
+      phone: '',
+      password: '',
+      role: '',
+      companyName: '',
+    });
+  }
+};
 
-  const handleLinkedInSignIn = async () => {
-    try {
-      await api.linkedInSignIn();
-    } catch (err: any) {
-      setError('Failed to initiate LinkedIn Sign-In');
-    }
-  };
+const handleLinkedInSignIn = async () => {
+  try {
+    await api.linkedInSignIn();
+  } catch (err: any) {
+    setErrors({
+      fullName: '',
+      email: 'Failed to initiate LinkedIn Sign-In',
+      phone: '',
+      password: '',
+      role: '',
+      companyName: '',
+    });
+  }
+};
+
+
+  useEffect(() => {
+    return () => {
+      if (controller) {
+        controller.abort();
+      }
+    };
+  }, [controller]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header onRegisterClick={() => navigate('/register')} />
-      <main className="flex-grow flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md border">
-          <div>
-            <h2 className="text-center text-2xl font-bold text-gray-900">Register</h2>
-            {error && <p className="mt-2 text-center text-sm text-red-600">{error}</p>}
-          </div>
-          <div className="space-y-4">
-            <button
-              onClick={handleGoogleSignIn}
-              className="w-full py-3 rounded-lg font-medium transition-colors bg-red-600 hover:bg-red-700 text-white flex items-center justify-center"
-            >
-              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M12.545,10.239v3.621h5.739c-0.231,1.239-0.923,2.316-1.955,3.293c-1.277,1.239-3.093,2.008-5.329,2.008 c-3.293,0-6.078-2.239-7.062-5.524c-0.277-0.923-0.416-1.893-0.416-2.893s0.139-1.97,0.416-2.893 c0.985-3.285,3.77-5.524,7.062-5.524c1.616,0,3.078,0.585,4.216,1.539l2.908-2.908C16.523,1.923,14.339,1,12,1 C6.477,1,2,5.477,2,11s4.477,10,10,10c2.662,0,5.047-1.008,6.862-2.662c1.985-1.816,3.138-4.431,3.138-7.338 c0-0.693-0.062-1.385-0.185-2.062H12.545z"
-                />
-              </svg>
-              Sign up with Google
-            </button>
-            <button
-              onClick={handleLinkedInSignIn}
-              className="w-full py-3 rounded-lg font-medium transition-colors bg-blue-700 hover:bg-blue-800 text-white flex items-center justify-center"
-            >
-              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"
-                />
-              </svg>
-              Sign up with LinkedIn
-            </button>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="border-t border-gray-300 w-full"></span>
-            <span className="px-3 text-gray-500">or</span>
-            <span className="border-t border-gray-300 w-full"></span>
-          </div>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                Role
-              </label>
-              <select
-                id="role"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="block w-full px-3 py-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+      <section className="py-16 flex-grow">
+        <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-lg shadow-sm border p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+              Register as {role === 'recruiter' ? 'a Recruiter' : 'a Job Seeker'}
+            </h2>
+            <div className="flex justify-center mb-6">
+              <button
+                onClick={() => {
+                  setRole('jobSeeker');
+                  navigate('/register?role=jobSeeker');
+                }}
+                className={`px-4 py-2 rounded-l-lg font-medium ${role === 'jobSeeker' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
               >
-                <option value="jobSeeker">Job Seeker</option>
-                <option value="recruiter">Recruiter</option>
-                <option value="admin">Admin</option>
-              </select>
+                Job Seeker
+              </button>
+              <button
+                onClick={() => {
+                  setRole('recruiter');
+                  navigate('/register?role=recruiter');
+                }}
+                className={`px-4 py-2 rounded-r-lg font-medium ${role === 'recruiter' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+              >
+                Recruiter
+              </button>
             </div>
-            {formData.role === 'jobSeeker' && (
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name
-                </label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="block w-full px-3 py-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter your full name"
-                />
+            {success && (
+              <p className="text-center text-sm text-green-600 mb-4">{success}</p>
+            )}
+            {Object.values(errors).some((err) => err) && (
+              <div className="text-center text-sm text-red-600 mb-4">
+                {Object.values(errors).find((err) => err) || 'Please fix the errors below'}
               </div>
             )}
-            {formData.role === 'recruiter' && (
-              <>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                    <User className="h-5 w-5" />
+                  </span>
+                  <input
+                    type="text"
+                    id="fullName"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    className="block w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter your full name"
+                  />
+                </div>
+                {errors.fullName && (
+                  <p className="text-sm text-red-600 mt-1">{errors.fullName}</p>
+                )}
+              </div>
+              {role === 'recruiter' && (
                 <div>
                   <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
                     Company Name
                   </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                      <Building className="h-5 w-5" />
+                    </span>
+                    <input
+                      type="text"
+                      id="companyName"
+                      name="companyName"
+                      value={formData.companyName || ''}
+                      onChange={handleChange}
+                      className="block w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Enter your company name"
+                    />
+                  </div>
+                  {errors.companyName && (
+                    <p className="text-sm text-red-600 mt-1">{errors.companyName}</p>
+                  )}
+                </div>
+              )}
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                    <Mail className="h-5 w-5" />
+                  </span>
                   <input
-                    id="companyName"
-                    name="companyName"
-                    type="text"
-                    value={formData.companyName}
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
                     onChange={handleChange}
-                    className="block w-full px-3 py-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter your company name"
+                    className="block w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter your email"
                   />
                 </div>
-                <div>
-                  <label htmlFor="companyLogoUrl" className="block text-sm font-medium text-gray-700 mb-1">
-                    Company Logo URL (optional)
-                  </label>
+                {errors.email && (
+                  <p className="text-sm text-red-600 mt-1">{errors.email}</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                    <Phone className="h-5 w-5" />
+                  </span>
                   <input
-                    id="companyLogoUrl"
-                    name="companyLogoUrl"
-                    type="text"
-                    value={formData.companyLogoUrl}
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
                     onChange={handleChange}
-                    className="block w-full px-3 py-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter company logo URL"
+                    className="block w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter your phone number"
                   />
                 </div>
-                <div>
-                  <label htmlFor="companyDescription" className="block text-sm font-medium text-gray-700 mb-1">
-                    Company Description (optional)
-                  </label>
+                {errors.phone && (
+                  <p className="text-sm text-red-600 mt-1">{errors.phone}</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                  Password
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                    <Lock className="h-5 w-5" />
+                  </span>
                   <input
-                    id="companyDescription"
-                    name="companyDescription"
-                    type="text"
-                    value={formData.companyDescription}
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={formData.password}
                     onChange={handleChange}
-                    className="block w-full px-3 py-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter company description"
+                    className="block w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter your password"
                   />
                 </div>
-                <div>
-                  <label htmlFor="companyWebsite" className="block text-sm font-medium text-gray-700 mb-1">
-                    Company Website (optional)
-                  </label>
-                  <input
-                    id="companyWebsite"
-                    name="companyWebsite"
-                    type="text"
-                    value={formData.companyWebsite}
-                    onChange={handleChange}
-                    className="block w-full px-3 py-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter company website"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="companyIndustry" className="block text-sm font-medium text-gray-700 mb-1">
-                    Industry (optional)
-                  </label>
-                  <input
-                    id="companyIndustry"
-                    name="companyIndustry"
-                    type="text"
-                    value={formData.companyIndustry}
-                    onChange={handleChange}
-                    className="block w-full px-3 py-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter company industry"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="companyLocation" className="block text-sm font-medium text-gray-700 mb-1">
-                    Location (optional)
-                  </label>
-                  <input
-                    id="companyLocation"
-                    name="companyLocation"
-                    type="text"
-                    value={formData.companyLocation}
-                    onChange={handleChange}
-                    className="block w-full px-3 py-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter company location"
-                  />
-                </div>
-              </>
-            )}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="block w-full px-3 py-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter your email"
-              />
+                {errors.password && (
+                  <p className="text-sm text-red-600 mt-1">{errors.password}</p>
+                )}
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full py-3 rounded-lg font-medium transition-colors ${
+                  loading
+                    ? 'bg-blue-300 text-white cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {loading ? 'Registering...' : 'Register'}
+              </button>
+            </form>
+            {/* Divider */}
+            <div className="my-4 sm:my-6 flex items-center">
+              <div className="flex-grow border-t border-gray-300" />
+              <span className="mx-4 text-xs sm:text-sm text-gray-500 whitespace-nowrap">or continue with</span>
+              <div className="flex-grow border-t border-gray-300" />
             </div>
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                Phone (optional)
-              </label>
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={handleChange}
-                className="block w-full px-3 py-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter your phone number"
-              />
+
+            {/* Social Sign-in Buttons */}
+            <div className="space-y-3">
+              <button
+                onClick={handleGoogleSignIn}
+                type="button"
+                disabled={loading}
+                className={`w-full py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base flex items-center justify-center gap-2 transition-colors ${
+                  loading
+                    ? 'bg-blue-300 text-white cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                <img 
+                  src="https://www.svgrepo.com/show/475656/google-color.svg" 
+                  alt="Google" 
+                  className="h-4 w-4 sm:h-5 sm:w-5" 
+                />
+                <span>Sign in with Google</span>
+              </button>
+
+              <button
+                onClick={handleLinkedInSignIn}
+                type="button"
+                disabled={loading}
+                className={`w-full py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base flex items-center justify-center gap-2 transition-colors ${
+                  loading
+                    ? 'bg-blue-300 text-white cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                <img 
+                  src="https://www.svgrepo.com/show/448234/linkedin.svg" 
+                  alt="LinkedIn" 
+                  className="h-4 w-4 sm:h-5 sm:w-5" 
+                />
+                <span>Sign in with LinkedIn</span>
+              </button>
             </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="block w-full px-3 py-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter your password"
-              />
-            </div>
-            <button
-              type="submit"
-              className={`w-full py-3 rounded-lg font-medium transition-colors ${
-                isLoading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
-              disabled={isLoading}
-            >
-              {isLoading ? 'Registering...' : 'Register'}
-            </button>
-          </form>
-          <p className="text-center text-sm text-gray-600">
-            Already have an account?{' '}
-            <button onClick={() => navigate('/login')} className="text-blue-600 hover:underline">
-              Login
-            </button>
-          </p>
+
+            <p className="mt-6 text-center text-sm text-gray-600">
+              Already have an account?{' '}
+              <a href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+                Login here
+              </a>
+            </p>
+          </div>
         </div>
-      </main>
+      </section>
       <Footer />
     </div>
   );

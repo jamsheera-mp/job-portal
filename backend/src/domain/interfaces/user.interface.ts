@@ -1,5 +1,5 @@
 export interface User {
-  id?: string;
+  id: string;
   name?: string,
   email: string;
   password: string;
@@ -9,6 +9,7 @@ export interface User {
   isEmailVerified?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  
 }
 
 export interface JobSeeker extends User {

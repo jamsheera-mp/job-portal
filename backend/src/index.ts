@@ -4,8 +4,9 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes';
-import session from 'express-session';
-import MongoStore from 'connect-mongo';
+//import session from 'express-session';
+//import MongoStore from 'connect-mongo';
+//import passport from 'passport';
 
 dotenv.config();
 
@@ -16,11 +17,10 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/job-portal
 
 
 //Middlewares
-app.use(cookieParser());
 app.use(express.json());
-
+app.use(cookieParser());
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
-
+/*
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-session-secret',
   resave: false,
@@ -33,6 +33,11 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000,
   },
 }));
+*/
+
+//  Initialize Passport and restore login sessions
+//app.use(passport.initialize());
+//app.use(passport.session());
 
 
 //Routes
@@ -48,6 +53,8 @@ const startServer = async (): Promise<void> => {
   try {
     await mongoose.connect(MONGO_URI);
     console.log('Connected to MongoDB');
+    
+    
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });

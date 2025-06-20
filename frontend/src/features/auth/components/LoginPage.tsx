@@ -24,36 +24,42 @@ const LoginPage: FC = () => {
     setError('');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.email || !formData.password) {
-      setError('Email and password are required');
-      return;
-    }
-    const abortController = new AbortController();
-    setController(abortController);
-    try {
-      const response = await api.login(formData, abortController.signal);
-      if (response.user && response.redirectUrl) {
-        dispatch(setUser(response.user));
-        navigate(response.redirectUrl);
-      } else if (response.message === 'Email not verified, OTP sent') {
-        setUserId(response.userId);
-        setError('');
-      } else {
-        setError(response.message || 'Login failed');
-      }
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
-        console.log('Request aborted');
-      } else {
-        setError('Login failed');
-      }
-    } finally {
-      setController(null);
-    }
-  };
 
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!formData.email || !formData.password) {
+    setError('Email and password are required');
+    return;
+  }
+  const abortController = new AbortController();
+  setController(abortController);
+  try {
+    const response = await api.login(formData, abortController.signal);
+    console.log('[LoginPage] API response:', response);
+    if (response.user && response.redirectUrl) {
+      console.log('[LoginPage] Dispatching user and navigating:', { user: response.user, redirectUrl: response.redirectUrl });
+      dispatch(setUser(response.user));
+      navigate(response.redirectUrl);
+    } else if (response.message === 'Email not verified, OTP sent' && response.userId) {
+      console.log('[LoginPage] OTP required, setting userId:', response.userId);
+      setUserId(response.userId);
+      setError('');
+    } else {
+      console.log('[LoginPage] Unexpected response:', response);
+      setError(response.message || 'Login failed');
+    }
+  } catch (err: any) {
+    console.error('[LoginPage] Error:', {
+      message: err.message,
+      status: err.response?.status,
+      data: err.response?.data,
+    });
+    setError(err.response?.data?.message || 'Login failed');
+  } finally {
+    setController(null);
+  }
+};
   const handleVerifyOtp = async (otp: string) => {
     const abortController = new AbortController();
     setController(abortController);
