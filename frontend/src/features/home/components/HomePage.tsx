@@ -1,7 +1,7 @@
 import { type FC } from 'react';
 import { Search, MapPin, Briefcase, Users, Code, PenTool, BarChart3, Shield, Heart, Wrench, Laptop, Building } from 'lucide-react';
-import Header from '../../../components/Header2';
-import Footer from '../../../components/Footer';
+import  Header  from '@components/Header';
+import  Footer  from '@components/Footer';
 
 interface JobCategory {
   id: string;

@@ -6,6 +6,15 @@ interface User {
   role: string;
   isEmailVerified: boolean;
   phone?: string;
+  name?: string;
+  company?: {
+    name: string;
+    logoUrl?: string;
+    description?: string;
+    website?: string;
+    industry?: string;
+    location?: string;
+  };
 }
 
 interface AuthState {

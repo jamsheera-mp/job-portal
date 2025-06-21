@@ -158,7 +158,7 @@ const RegisterPage: FC = () => {
       setController(null);
     }
   };
-
+/*
   const handleGoogleSignIn = async () => {
   try {
     await api.googleSignIn();
@@ -188,7 +188,7 @@ const handleLinkedInSignIn = async () => {
     });
   }
 };
-
+*/
 
   useEffect(() => {
     return () => {
@@ -360,6 +360,8 @@ const handleLinkedInSignIn = async () => {
                 {loading ? 'Registering...' : 'Register'}
               </button>
             </form>
+
+            
             {/* Divider */}
             <div className="my-4 sm:my-6 flex items-center">
               <div className="flex-grow border-t border-gray-300" />
@@ -368,6 +370,7 @@ const handleLinkedInSignIn = async () => {
             </div>
 
             {/* Social Sign-in Buttons */}
+            {/*
             <div className="space-y-3">
               <button
                 onClick={handleGoogleSignIn}
@@ -405,7 +408,8 @@ const handleLinkedInSignIn = async () => {
                 <span>Sign in with LinkedIn</span>
               </button>
             </div>
-
+         */}
+         
             <p className="mt-6 text-center text-sm text-gray-600">
               Already have an account?{' '}
               <a href="/login" className="text-blue-600 hover:text-blue-700 font-medium">

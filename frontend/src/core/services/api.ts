@@ -1,4 +1,3 @@
-// frontend/src/core/services/api.ts
 import axiosInstance from './axiosInstance';
 
 interface RegisterData {
@@ -34,6 +33,14 @@ interface User {
   isEmailVerified: boolean;
   phone?: string;
   name?: string;
+  company?: {
+    name: string;
+    logoUrl?: string;
+    description?: string;
+    website?: string;
+    industry?: string;
+    location?: string;
+  };
 }
 
 interface AuthResponse {
@@ -41,6 +48,21 @@ interface AuthResponse {
   userId?: string;
   user?: User;
   redirectUrl?: string;
+}
+
+interface ProfileUpdateData {
+  company?: {
+    name?: string;
+    logoUrl?: string;
+    description?: string;
+    website?: string;
+    industry?: string;
+    location?: string;
+  };
+}
+
+interface ProfileResponse {
+  user: User;
 }
 
 class ApiService {
@@ -123,9 +145,40 @@ class ApiService {
       throw error;
     }
   }
-  
-  /*
 
+  async fetchProfile(signal?: AbortSignal): Promise<ProfileResponse> {
+    console.log('[API] Fetch profile request');
+    try {
+      const response = await axiosInstance.get('/profile', { signal });
+      console.log('[API] Fetch profile response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('[API] Fetch profile error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error;
+    }
+  }
+
+  async updateProfile(data: ProfileUpdateData, signal?: AbortSignal): Promise<ProfileResponse> {
+    console.log('[API] Update profile request:', data);
+    try {
+      const response = await axiosInstance.patch('/profile', data, { signal });
+      console.log('[API] Update profile response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('[API] Update profile error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error;
+    }
+  }
+
+  /*
   googleSignIn(): void {
     const oauthUrl = `http://localhost:5000/api/auth/google`;
     console.log('[API] Redirecting to Google OAuth:', oauthUrl);
@@ -137,7 +190,7 @@ class ApiService {
     console.log('[API] Redirecting to LinkedIn OAuth:', oauthUrl);
     window.location.href = oauthUrl;
   }
-    */
+  */
 }
 
 export const api = new ApiService();
