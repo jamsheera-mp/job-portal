@@ -70,12 +70,10 @@ export class AuthController {
         company,
       };
       await this.otpService.generateOtp(email, userData);
-      res
-        .status(201)
-        .json({
-          message: "User registered, OTP sent to email",
-          email,
-        } as RegisterResponseDto);
+      res.status(201).json({
+        message: "User registered, OTP sent to email",
+        email,
+      } as RegisterResponseDto);
     } catch (error: any) {
       res.status(400).json({ message: error.message || "Registration failed" });
     }
@@ -184,7 +182,7 @@ export class AuthController {
         redirectUrl,
       } as VerifyOtpResponseDto);
     } catch (error: any) {
-      console.error('[VerifyOtp] Error:', error.message);
+      console.error("[VerifyOtp] Error:", error.message);
       if (
         error.message ===
         "Maximum OTP verification attempts exceeded. Please request a new OTP."
@@ -208,11 +206,9 @@ export class AuthController {
 
       const tempUser = await this.otpService.getTempUser(email);
       if (!tempUser) {
-        res
-          .status(404)
-          .json({
-            message: "Temporary user data not found. Please register again.",
-          });
+        res.status(404).json({
+          message: "Temporary user data not found. Please register again.",
+        });
         return;
       }
 
@@ -253,8 +249,20 @@ export class AuthController {
         return;
       }
 
-      if (!(await bcrypt.compare(password, user.password))) {
-        res.status(401).json({ message: "Invalid password" });
+      try {
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        console.log("[Login] Password comparison result:", isPasswordValid);
+        if (!isPasswordValid) {
+          res.status(401).json({ message: "Invalid password" });
+          return;
+        }
+      } catch (error: any) {
+        console.error("[Login] Bcrypt comparison error:", error.message);
+        res
+          .status(500)
+          .json({
+            message: "Internal server error: Password comparison failed",
+          });
         return;
       }
 

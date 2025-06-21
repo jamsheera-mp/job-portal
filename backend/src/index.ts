@@ -1,9 +1,12 @@
-import express, { type Application } from 'express';
+import express, { type Application , Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes';
+import profileRoutes from './routes/profile.routes'
+
+
 //import session from 'express-session';
 //import MongoStore from 'connect-mongo';
 //import passport from 'passport';
@@ -42,12 +45,23 @@ app.use(session({
 
 //Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes)
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ message: 'Server is running' });
 });
 
+// Error-handling middleware
+const errorHandler: ErrorRequestHandler = (error: Error, req: Request, res: Response, next: NextFunction): void => {
+  console.error(`[${new Date().toISOString()}] Error:`, error.message);
+  if (error.message === 'No access token provided' || error.message === 'Invalid token') {
+    res.status(401).json({ message: error.message });
+  } else {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
 
+app.use(errorHandler);
 
 const startServer = async (): Promise<void> => {
   try {

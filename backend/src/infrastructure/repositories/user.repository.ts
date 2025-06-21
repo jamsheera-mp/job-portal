@@ -1,87 +1,7 @@
-import { model, Schema } from 'mongoose';
-import bcrypt from 'bcryptjs';
+import  { Document } from 'mongoose';
 import { User, JobSeeker, Recruiter, Admin } from '../../domain/interfaces/user.interface';
 import { UserRepository } from '../../domain/interfaces/user.repository.interface';
-
-const JobSeekerSchema = new Schema<JobSeeker>({
-  email: { type: String, required: true, unique: true, index: true },
-  password: { type: String, required: true },
-  role: { type: String, enum: ['jobSeeker'], default: 'jobSeeker' },
-  isBlocked: { type: Boolean, default: false },
-  isEmailVerified: { type: Boolean, default: false },
-  name: { type: String, required: true },
-  bio: String,
-  phone: String,
-  skills: [String],
-  resumeUrl: String,
-  githubUrl: String,
-  linkedinUrl: String,
-  experience: [{ company: String, role: String, years: Number }],
-  profilePictureUrl: String,
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
-});
-
-const RecruiterSchema = new Schema<Recruiter>({
-  email: { type: String, required: true, unique: true, index: true },
-  password: { type: String, required: true },
-  role: { type: String, enum: ['recruiter'], default: 'recruiter' },
-  isBlocked: { type: Boolean, default: false },
-  isEmailVerified: { type: Boolean, default: false },
-  company: {
-    name: String,
-    logoUrl: String,
-    description: String,
-    website: String,
-    industry: String,
-    location: String,
-  },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
-});
-
-const AdminSchema = new Schema<Admin>({
-  email: { type: String, required: true, unique: true, index: true },
-  password: { type: String, required: true },
-  role: { type: String, enum: ['admin'], default: 'admin' },
-  isBlocked: { type: Boolean, default: false },
-  isEmailVerified: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
-});
-
-JobSeekerSchema.pre('save', async function (next) {
-  if (this.isModified('password') && !this.password.startsWith('$2b$')) {
-    console.log('[JobSeekerSchema] Hashing password for:', this.email);
-    this.password = await bcrypt.hash(this.password, 10);
-  } else {
-    console.log('[JobSeekerSchema] Skipping password hashing for:', this.email);
-  }
-  this.updatedAt = new Date();
-  next();
-});
-
-RecruiterSchema.pre('save', async function (next) {
-  if (this.isModified('password') && !this.password.startsWith('$2b$')) {
-    console.log('[RecruiterSchema] Hashing password for:', this.email);
-    this.password = await bcrypt.hash(this.password, 10);
-  } else {
-    console.log('[RecruiterSchema] Skipping password hashing for:', this.email);
-  }
-  this.updatedAt = new Date();
-  next();
-});
-
-AdminSchema.pre('save', async function (next) {
-  if (this.isModified('password')) {
-    this.password = await bcrypt.hash(this.password, 10);
-  }
-  next();
-});
-
-const JobSeekerModel = model<JobSeeker>('JobSeeker', JobSeekerSchema);
-const RecruiterModel = model<Recruiter>('Recruiter', RecruiterSchema);
-const AdminModel = model<Admin>('Admin', AdminSchema);
+import { JobSeekerModel, RecruiterModel, AdminModel } from '../database/user.schema';
 
 
 // Helper function to transform MongoDB document to User interface
@@ -97,7 +17,6 @@ const transformToUser = (doc: any): User => {
   delete user.__v;
   return user as User;
 };
-
 
 export class MongoUserRepository implements UserRepository {
   async create(user: User): Promise<User> {
@@ -155,25 +74,37 @@ export class MongoUserRepository implements UserRepository {
 
   async update(id: string, data: Partial<User>): Promise<User | null> {
     try {
-      let Model;
       let user = await JobSeekerModel.findById(id).lean();
-      if (user) Model = JobSeekerModel;
-      else {
-        user = await RecruiterModel.findById(id).lean();
-        if (user) Model = RecruiterModel;
-        else {
-          user = await AdminModel.findById(id).lean();
-          if (user) Model = AdminModel;
-          else return null;
-        }
+      if (user) {
+        const updatedUser = await JobSeekerModel.findByIdAndUpdate(
+          id,
+          { ...data, updatedAt: new Date() },
+          { new: true }
+        ).lean();
+        return updatedUser ? transformToUser(updatedUser) : null;
       }
-      const updatedUser = await Model.findByIdAndUpdate(
-        id,
-        { ...data, updatedAt: new Date() },
-        { new: true }
-      ).lean();
-      if (!updatedUser) return null;
-      return transformToUser(updatedUser);
+
+      user = await RecruiterModel.findById(id).lean();
+      if (user) {
+        const updatedUser = await RecruiterModel.findByIdAndUpdate(
+          id,
+          { ...data, updatedAt: new Date() },
+          { new: true }
+        ).lean();
+        return updatedUser ? transformToUser(updatedUser) : null;
+      }
+
+      user = await AdminModel.findById(id).lean();
+      if (user) {
+        const updatedUser = await AdminModel.findByIdAndUpdate(
+          id,
+          { ...data, updatedAt: new Date() },
+          { new: true }
+        ).lean();
+        return updatedUser ? transformToUser(updatedUser) : null;
+      }
+
+      return null;
     } catch (error: any) {
       console.error('Error updating user:', error.message);
       throw new Error(`Failed to update user: ${error.message}`);

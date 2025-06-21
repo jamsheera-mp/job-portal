@@ -2,6 +2,14 @@ import jwt from 'jsonwebtoken';
 import { User } from '../../domain/interfaces/user.interface';
 import { RefreshTokenModel } from '../database/refresh-token.schema';
 
+
+
+interface TokenPayload {
+  id: string;
+  email: string;
+  role: string;
+}
+
 export class JwtService {
   private readonly accessSecret: string;
   private readonly refreshSecret: string;
@@ -74,6 +82,17 @@ export class JwtService {
     } catch (error: any) {
       console.error('[JwtService] Error invalidating refresh token:', error.message);
       throw new Error('Failed to invalidate refresh token');
+    }
+  }
+  
+  verifyAccessToken(token: string): TokenPayload {
+    try {
+      const payload = jwt.verify(token, this.accessSecret) as TokenPayload;
+      console.log('[JwtService] Access token verified:', payload);
+      return payload;
+    } catch (error: any) {
+      console.error('[JwtService] Error verifying access token:', error.message);
+      throw new Error('Invalid access token');
     }
   }
 }
