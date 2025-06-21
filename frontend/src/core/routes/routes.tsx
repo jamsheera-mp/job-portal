@@ -7,6 +7,7 @@ import VerifyOtpPage from '@features/auth/components/VerifyOtpPage';
 import JobSeekerProfile from '@pages/job-seeker/JobSeekerProfile';
 import RecruiterProfile from '@pages/recruiter/RecruiterProfile';
 import Unauthorized from '@features/auth/components/Unauthorized';
+import ResetPassword from '@/features/auth/components/ResetPassword';
 
 const AppRoutes: React.FC = () => {
   return (
@@ -15,6 +16,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/verify-otp" element={<VerifyOtpPage />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/job-seeker/profile" element={<JobSeekerProfile />} />
       <Route path="/recruiter/profile" element={<RecruiterProfile />} />
       <Route path="/unauthorized" element={<Unauthorized />} />

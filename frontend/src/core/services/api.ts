@@ -1,4 +1,4 @@
-import axiosInstance from './axiosInstance';
+import axiosInstance from "./axiosInstance";
 
 interface RegisterData {
   email: string;
@@ -19,6 +19,8 @@ interface RegisterData {
 interface VerifyOtpData {
   email: string;
   otp: string;
+  userId?: string;
+  isReset?: boolean;
 }
 
 interface LoginData {
@@ -33,6 +35,7 @@ interface User {
   isEmailVerified: boolean;
   phone?: string;
   name?: string;
+  password: string; // Added for password comparison
   company?: {
     name: string;
     logoUrl?: string;
@@ -67,13 +70,13 @@ interface ProfileResponse {
 
 class ApiService {
   async register(data: RegisterData, signal?: AbortSignal): Promise<{ message: string; email: string }> {
-    console.log('[API] Register request:', data);
+    console.log("[API] Register request:", data);
     try {
-      const response = await axiosInstance.post('/auth/register', data, { signal });
-      console.log('[API] Register response:', response.data);
+      const response = await axiosInstance.post("/auth/register", data, { signal });
+      console.log("[API] Register response:", response.data);
       return response.data;
     } catch (error: any) {
-      console.error('[API] Register error:', {
+      console.error("[API] Register error:", {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data,
@@ -83,13 +86,13 @@ class ApiService {
   }
 
   async resendOtp(data: { email: string }, signal?: AbortSignal): Promise<{ message: string }> {
-    console.log('[API] Resend OTP request:', data);
+    console.log("[API] Resend OTP request:", data);
     try {
-      const response = await axiosInstance.post('/auth/resend-otp', data, { signal });
-      console.log('[API] Resend OTP response:', response.data);
+      const response = await axiosInstance.post("/auth/resend-otp", data, { signal });
+      console.log("[API] Resend OTP response:", response.data);
       return response.data;
     } catch (error: any) {
-      console.error('[API] Resend OTP error:', {
+      console.error("[API] Resend OTP error:", {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data,
@@ -99,13 +102,13 @@ class ApiService {
   }
 
   async verifyOtp(data: VerifyOtpData, signal?: AbortSignal): Promise<AuthResponse> {
-    console.log('[API] Verify OTP request:', data);
+    console.log("[API] Verify OTP request:", { email: data.email, otp: "[REDACTED]", isReset: data.isReset });
     try {
-      const response = await axiosInstance.post('/auth/verify-otp', data, { signal });
-      console.log('[API] Verify OTP response:', response.data);
+      const response = await axiosInstance.post("/auth/verify-otp", data, { signal });
+      console.log("[API] Verify OTP response:", response.data);
       return response.data;
     } catch (error: any) {
-      console.error('[API] Verify OTP error:', {
+      console.error("[API] Verify OTP error:", {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data,
@@ -115,13 +118,13 @@ class ApiService {
   }
 
   async login(data: LoginData, signal?: AbortSignal): Promise<AuthResponse> {
-    console.log('[API] Login request:', data);
+    console.log("[API] Login request:", data);
     try {
-      const response = await axiosInstance.post('/auth/login', data, { signal });
-      console.log('[API] Login response:', response.data);
+      const response = await axiosInstance.post("/auth/login", data, { signal });
+      console.log("[API] Login response:", response.data);
       return response.data;
     } catch (error: any) {
-      console.error('[API] Login error:', {
+      console.error("[API] Login error:", {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data,
@@ -131,13 +134,13 @@ class ApiService {
   }
 
   async logout(signal?: AbortSignal): Promise<{ message: string }> {
-    console.log('[API] Logout request');
+    console.log("[API] Logout request");
     try {
-      const response = await axiosInstance.post('/auth/logout', {}, { signal });
-      console.log('[API] Logout response:', response.data);
+      const response = await axiosInstance.post("/auth/logout", {}, { signal });
+      console.log("[API] Logout response:", response.data);
       return response.data;
     } catch (error: any) {
-      console.error('[API] Logout error:', {
+      console.error("[API] Logout error:", {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data,
@@ -147,13 +150,13 @@ class ApiService {
   }
 
   async fetchProfile(signal?: AbortSignal): Promise<ProfileResponse> {
-    console.log('[API] Fetch profile request');
+    console.log("[API] Fetch profile request");
     try {
-      const response = await axiosInstance.get('/profile', { signal });
-      console.log('[API] Fetch profile response:', response.data);
+      const response = await axiosInstance.get("/profile", { signal });
+      console.log("[API] Fetch profile response:", response.data);
       return response.data;
     } catch (error: any) {
-      console.error('[API] Fetch profile error:', {
+      console.error("[API] Fetch profile error:", {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data,
@@ -163,13 +166,13 @@ class ApiService {
   }
 
   async updateProfile(data: ProfileUpdateData, signal?: AbortSignal): Promise<ProfileResponse> {
-    console.log('[API] Update profile request:', data);
+    console.log("[API] Update profile request:", data);
     try {
-      const response = await axiosInstance.patch('/profile', data, { signal });
-      console.log('[API] Update profile response:', response.data);
+      const response = await axiosInstance.patch("/profile", data, { signal });
+      console.log("[API] Update profile response:", response.data);
       return response.data;
     } catch (error: any) {
-      console.error('[API] Update profile error:', {
+      console.error("[API] Update profile error:", {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data,
@@ -178,19 +181,21 @@ class ApiService {
     }
   }
 
-  /*
-  googleSignIn(): void {
-    const oauthUrl = `http://localhost:5000/api/auth/google`;
-    console.log('[API] Redirecting to Google OAuth:', oauthUrl);
-    window.location.href = oauthUrl;
+  async resetPassword(data: { email: string; otp: string; newPassword: string }, signal?: AbortSignal): Promise<{ message: string }> {
+    console.log("[API] Reset password request:", { email: data.email, otp: "[REDACTED]", newPassword: "[REDACTED]" });
+    try {
+      const response = await axiosInstance.post("/auth/reset-password", data, { signal });
+      console.log("[API] Reset password response:", response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error("[API] Reset password error:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error;
+    }
   }
-
-  linkedInSignIn(): void {
-    const oauthUrl = `http://localhost:5000/api/auth/linkedin`;
-    console.log('[API] Redirecting to LinkedIn OAuth:', oauthUrl);
-    window.location.href = oauthUrl;
-  }
-  */
 }
 
 export const api = new ApiService();

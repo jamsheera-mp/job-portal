@@ -1,17 +1,17 @@
-import { type FC, useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { setUser } from '../slices/authSlice';
-import { api } from '../../../core/services/api';
-import Header from '../../../components/Header';
-import Footer from '../../../components/Footer';
+import { type FC, useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { setUser } from "../slices/authSlice";
+import { api } from "@core/services/api";
+import Header from "@components/Header";
+import Footer from "@components/Footer";
 
 const VerifyOtpPage: FC = () => {
-  const [otp, setOtp] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [otp, setOtp] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [searchParams] = useSearchParams();
-  const email = searchParams.get('email') || '';
+  const email = searchParams.get("email") || "";
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [controller, setController] = useState<AbortController | null>(null);
@@ -21,16 +21,15 @@ const VerifyOtpPage: FC = () => {
 
   useEffect(() => {
     if (!email) {
-      setError('Email is missing. Please register again.');
+      setError("Invalid request. Please return to the login page and try again.");
       setTimeout(() => {
-        navigate('/register');
+        navigate("/login");
       }, 3000);
     }
   }, [email, navigate]);
 
   useEffect(() => {
-   let timer: ReturnType<typeof setTimeout>;
-
+    let timer: ReturnType<typeof setTimeout>;
     if (resendCooldown > 0) {
       timer = setTimeout(() => {
         setResendCooldown((prev) => prev - 1);
@@ -40,29 +39,32 @@ const VerifyOtpPage: FC = () => {
   }, [resendCooldown]);
 
   const handleVerifyOtp = async () => {
-    if (!email) {
-      setError('Email is missing. Please register again.');
+    if (!email || !otp) {
+      setError("Email and OTP are required.");
       return;
     }
     setIsVerifying(true);
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
     const abortController = new AbortController();
     setController(abortController);
     try {
-      const response = await api.verifyOtp({ email, otp }, abortController.signal);
+      const response = await api.verifyOtp({ email, otp, isReset: true }, abortController.signal);
       if (response.user && response.redirectUrl) {
         dispatch(setUser(response.user));
         navigate(response.redirectUrl);
+      } else if (response.message === "OTP verified, proceed to reset password" && response.email && response.otp) {
+        setSuccess(response.message);
+        navigate("/reset-password", { state: { email: response.email, otp: response.otp } });
       } else {
-        setError(response.message || 'OTP verification failed');
+        setError(response.message || "OTP verification failed");
       }
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        console.log('Request aborted');
+      if (err.name === "AbortError") {
+        console.log("Request aborted");
       } else {
-         const errorMessage = err.response?.data?.message || 'OTP verification failed';
-        if (errorMessage.includes('Maximum OTP verification attempts exceeded')) {
+        const errorMessage = err.response?.data?.message || "OTP verification failed";
+        if (errorMessage.includes("Maximum OTP verification attempts exceeded")) {
           setError(errorMessage);
         } else {
           setError(errorMessage);
@@ -76,23 +78,23 @@ const VerifyOtpPage: FC = () => {
 
   const handleResendOtp = async () => {
     if (!email) {
-      setError('Email is missing. Please register again.');
+      setError("Invalid request. Please return to the login page and try again.");
       return;
     }
     setIsResending(true);
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
     const abortController = new AbortController();
     setController(abortController);
     try {
       const response = await api.resendOtp({ email }, abortController.signal);
-      setSuccess(response.message || 'OTP resent successfully');
+      setSuccess(response.message || "OTP resent successfully");
       setResendCooldown(30);
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        console.log('Request aborted');
+      if (err.name === "AbortError") {
+        console.log("Request aborted");
       } else {
-        setError(err.response?.data?.message || 'Failed to resend OTP');
+        setError(err.response?.data?.message || "Failed to resend OTP");
       }
     } finally {
       setIsResending(false);
@@ -110,7 +112,7 @@ const VerifyOtpPage: FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header onRegisterClick={() => navigate('/register')} />
+      <Header onRegisterClick={() => navigate("/register")} />
       <main className="flex-grow flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md border">
           <div>
@@ -137,27 +139,27 @@ const VerifyOtpPage: FC = () => {
               onClick={handleVerifyOtp}
               className={`w-full py-3 rounded-lg font-medium transition-colors ${
                 isVerifying || !email
-                  ? 'bg-blue-400 text-white cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  ? "bg-blue-400 text-white cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
               }`}
               disabled={isVerifying || !email}
             >
-              {isVerifying ? 'Verifying...' : 'Verify OTP'}
+              {isVerifying ? "Verifying..." : "Verify OTP"}
             </button>
             <button
               onClick={handleResendOtp}
               disabled={!email || resendCooldown > 0 || isResending}
               className={`w-full py-3 rounded-lg font-medium transition-colors ${
                 resendCooldown > 0 || isResending
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-gray-200 hover:bg-gray-300 text-gray-700"
               }`}
             >
               {resendCooldown > 0
                 ? `Resend OTP (${resendCooldown}s)`
                 : isResending
-                ? 'Resending...'
-                : 'Resend OTP'}
+                ? "Resending..."
+                : "Resend OTP"}
             </button>
           </div>
         </div>

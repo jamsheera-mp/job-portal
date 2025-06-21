@@ -1,19 +1,19 @@
-import { type FC, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Mail, Lock } from 'lucide-react';
-import { useDispatch } from 'react-redux';
-import { setUser } from '../slices/authSlice';
-import { api } from '../../../core/services/api';
-import Header from '../../../components/Header';
-import Footer from '../../../components/Footer';
+import { type FC, useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Mail, Lock } from "lucide-react";
+import { useDispatch } from "react-redux";
+import { setUser } from "../slices/authSlice";
+import { api } from "@core/services/api";
+import Header from "@components/Header";
+import Footer from "@components/Footer";
 
 const LoginPage: FC = () => {
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
-  const [error, setError] = useState('');
-  const [userId, setUserId] = useState('');
+  const [error, setError] = useState("");
+  const [userId, setUserId] = useState("");
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [controller, setController] = useState<AbortController | null>(null);
@@ -21,71 +21,101 @@ const LoginPage: FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    setError('');
+    setError("");
   };
 
-
-
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!formData.email || !formData.password) {
-    setError('Email and password are required');
-    return;
-  }
-  const abortController = new AbortController();
-  setController(abortController);
-  try {
-    const sanitizedData = {
-      email: formData.email.trim(),
-      password: formData.password.trim(),
-    };
-    console.log('[LoginPage] Sending login request:', {
-      email: sanitizedData.email,
-      password: '[REDACTED]',
-    });
-
-    const response = await api.login(sanitizedData, abortController.signal);
-    console.log('[LoginPage] API response:', response);
-    if (response.user && response.redirectUrl) {
-      console.log('[LoginPage] Dispatching user and navigating:', { user: response.user, redirectUrl: response.redirectUrl });
-      dispatch(setUser(response.user));
-      navigate(response.redirectUrl);
-    } else if (response.message === 'Email not verified, OTP sent' && response.userId) {
-      console.log('[LoginPage] OTP required, setting userId:', response.userId);
-      setUserId(response.userId);
-      setError('');
-    } else {
-      console.log('[LoginPage] Unexpected response:', response);
-      setError(response.message || 'Login failed');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.email || !formData.password) {
+      setError("Email and password are required");
+      return;
     }
-  } catch (err: any) {
-    console.error('[LoginPage] Error:', {
-      message: err.message,
-      status: err.response?.status,
-      data: err.response?.data,
-    });
-    setError(err.response?.data?.message || 'Login failed');
-  } finally {
-    setController(null);
-  }
-};
+    const abortController = new AbortController();
+    setController(abortController);
+    try {
+      const sanitizedData = {
+        email: formData.email.trim(),
+        password: formData.password.trim(),
+      };
+      console.log("[LoginPage] Sending login request:", {
+        email: sanitizedData.email,
+        password: "[REDACTED]",
+      });
+
+      const response = await api.login(sanitizedData, abortController.signal);
+      console.log("[LoginPage] API response:", response);
+      if (response.user && response.redirectUrl) {
+        console.log("[LoginPage] Dispatching user and navigating:", {
+          user: response.user,
+          redirectUrl: response.redirectUrl,
+        });
+        dispatch(setUser(response.user));
+        navigate(response.redirectUrl);
+      } else if (response.message === "Email not verified, OTP sent" && response.userId) {
+        console.log("[LoginPage] OTP required, setting userId:", response.userId);
+        setUserId(response.userId);
+        setError("");
+      } else {
+        console.log("[LoginPage] Unexpected response:", response);
+        setError(response.message || "Login failed");
+      }
+    } catch (err: any) {
+      console.error("[LoginPage] Error:", {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+      });
+      setError(err.response?.data?.message || "Login failed");
+    } finally {
+      setController(null);
+    }
+  };
+
   const handleVerifyOtp = async (otp: string) => {
     const abortController = new AbortController();
     setController(abortController);
     try {
-      const response = await api.verifyOtp({ userId, otp }, abortController.signal);
+      const response = await api.verifyOtp({ email: formData.email.trim(), otp }, abortController.signal);
       if (response.user && response.redirectUrl) {
         dispatch(setUser(response.user));
         navigate(response.redirectUrl);
       } else {
-        setError(response.message || 'OTP verification failed');
+        setError(response.message || "OTP verification failed");
       }
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        console.log('Request aborted');
+      if (err.name === "AbortError") {
+        console.log("Request aborted");
       } else {
-        setError('OTP verification failed');
+        setError("OTP verification failed");
       }
+    } finally {
+      setController(null);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!formData.email) {
+      setError("Please enter your email address");
+      return;
+    }
+    const abortController = new AbortController();
+    setController(abortController);
+    try {
+      console.log("[LoginPage] Sending OTP request for:", { email: formData.email });
+      const response = await api.resendOtp({ email: formData.email.trim() }, abortController.signal);
+      console.log("[LoginPage] OTP sent response:", response);
+      if (response.message && response.message.includes("successfully")) {
+        navigate(`/verify-otp?email=${encodeURIComponent(formData.email)}`);
+      } else {
+        setError(response.message || "Failed to send OTP");
+      }
+    } catch (err: any) {
+      console.error("[LoginPage] Error sending OTP:", {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+      });
+      setError(err.response?.data?.message || "Failed to send OTP");
     } finally {
       setController(null);
     }
@@ -101,7 +131,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header onRegisterClick={() => navigate('/register')} />
+      <Header onRegisterClick={() => navigate("/register")} />
       <section className="py-16 flex-grow">
         <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-lg shadow-sm border p-8">
@@ -147,6 +177,16 @@ const handleSubmit = async (e: React.FormEvent) => {
                       placeholder="Enter your password"
                       required
                     />
+                    <Link
+                      to="/verify-otp"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleForgotPassword();
+                      }}
+                      className="text-sm text-blue-600 hover:text-blue-800 mt-1 inline-block"
+                    >
+                      Forgot Password?
+                    </Link>
                   </div>
                 </div>
                 <button
@@ -174,7 +214,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 };
 
 const VerifyOtpForm: FC<{ onVerify: (otp: string) => Promise<void> }> = ({ onVerify }) => {
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState("");
 
   const handleSubmit = async () => {
     await onVerify(otp);

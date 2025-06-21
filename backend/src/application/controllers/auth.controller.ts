@@ -12,18 +12,20 @@ import {
   LoginResponseDto,
 } from "../dtos/auth.dto";
 import bcrypt from "bcryptjs";
-//import passport from '../../infrastructure/auth/passport.config';
+import { ResetPasswordUseCase } from "../../domain/use-cases/reset-password.use-case";
 
 export class AuthController {
   private readonly registerUserUseCase: RegisterUserUseCase;
+  private readonly resetPasswordUseCase: ResetPasswordUseCase;
   private readonly userRepository: MongoUserRepository;
   private readonly otpService: OtpService;
   private readonly jwtService: JwtService;
 
   constructor() {
     this.userRepository = new MongoUserRepository();
+    this.otpService = new OtpService(this.userRepository);
     this.registerUserUseCase = new RegisterUserUseCase(this.userRepository);
-    this.otpService = new OtpService();
+    this.resetPasswordUseCase = new ResetPasswordUseCase(this.userRepository, this.otpService);
     this.jwtService = new JwtService();
   }
 
@@ -38,9 +40,7 @@ export class AuthController {
         company,
       }: RegisterRequestDto = req.body;
       if (!email || !password || !role) {
-        res
-          .status(400)
-          .json({ message: "Email, password, and role are required" });
+        res.status(400).json({ message: "Email, password, and role are required" });
         return;
       }
       if (role === "jobSeeker" && !name) {
@@ -48,9 +48,7 @@ export class AuthController {
         return;
       }
       if (role === "recruiter" && (!company || !company.name)) {
-        res
-          .status(400)
-          .json({ message: "Company name is required for recruiters" });
+        res.status(400).json({ message: "Company name is required for recruiters" });
         return;
       }
 
@@ -81,14 +79,14 @@ export class AuthController {
 
   async verifyOtp(req: Request, res: Response): Promise<void> {
     try {
-      const { email, otp }: VerifyOtpRequestDto = req.body;
-      console.log("[VerifyOtp] Request body:", { email, otp });
+      const { email, otp, isReset }: VerifyOtpRequestDto = req.body;
+      console.log("[VerifyOtp] Request body:", { email, otp, isReset });
       if (!email || !otp) {
         res.status(400).json({ message: "Email and OTP are required" });
         return;
       }
 
-      const isValid = await this.otpService.verifyOtp(email, otp);
+      const isValid = await this.otpService.verifyOtp(email, otp, isReset);
       console.log("otp", otp);
 
       if (!isValid) {
@@ -96,91 +94,99 @@ export class AuthController {
         return;
       }
 
-      const tempUser = await this.otpService.getTempUser(email);
-      console.log("[VerifyOtp] Retrieved temp user:", {
-        email: tempUser?.email,
-        role: tempUser?.role,
-        hasPassword: !!tempUser?.password,
-      });
-      if (!tempUser) {
-        res.status(404).json({ message: "user data not found" });
-        return;
-      }
-
-      const userData = {
-        email: tempUser.email,
-        password: tempUser.password,
-        role: tempUser.role,
-        name: tempUser.name,
-        phone: tempUser.phone,
-        company: tempUser.company,
-        isEmailVerified: true,
-      };
-
-      console.log("[VerifyOtp] User data for registration:", {
-        email: userData.email,
-        role: userData.role,
-        hasPassword: !!userData.password,
-      });
-
-      const user = await this.registerUserUseCase.execute(userData);
-      console.log("[VerifyOtp] Created user:", {
-        id: user?.id,
-        email: user?.email,
-        role: user?.role,
-      });
-      if (!user.id) {
-        console.error("[VerifyOtp] User ID missing:", user);
-        throw new Error("Failed to create user: user ID is missing");
-      }
-
-      await this.otpService.deleteTempUser(email);
-      console.log("[VerifyOtp] Deleted temp user for:", email);
-
-      let accessToken, refreshToken;
-      try {
-        accessToken = this.jwtService.generateAccessToken(user);
-        console.log("[VerifyOtp] Access token generated");
-        refreshToken = await this.jwtService.generateRefreshToken(user);
-        console.log("[VerifyOtp] Refresh token generated");
-      } catch (error: any) {
-        console.error("[VerifyOtp] Token generation error:", error.message);
-        res.status(500).json({ message: "Failed to generate tokens" });
-        return;
-      }
-
-      try {
-        res.cookie("accessToken", accessToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "strict",
-          maxAge: 60 * 60 * 1000,
+      if (isReset) {
+        res.status(200).json({
+          message: "OTP verified, proceed to reset password",
+          email,
+          otp,
         });
-        res.cookie("refreshToken", refreshToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "strict",
-          maxAge: 7 * 24 * 60 * 60 * 1000,
+      } else {
+        const tempUser = await this.otpService.getTempUser(email);
+        console.log("[VerifyOtp] Retrieved temp user:", {
+          email: tempUser?.email,
+          role: tempUser?.role,
+          hasPassword: !!tempUser?.password,
         });
-        console.log("[VerifyOtp] Cookies set successfully");
-      } catch (error: any) {
-        console.error("[VerifyOtp] Cookie setting error:", error.message);
-        res.status(500).json({ message: "Failed to set cookies" });
-        return;
-      }
+        if (!tempUser) {
+          res.status(404).json({ message: "User data not found" });
+          return;
+        }
 
-      const redirectUrl = this.getRedirectUrl(user.role);
-      console.log("[VerifyOtp] Redirecting to:", redirectUrl);
-      res.status(200).json({
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
+        const userData = {
+          email: tempUser.email,
+          password: tempUser.password,
+          role: tempUser.role,
+          name: tempUser.name,
+          phone: tempUser.phone,
+          company: tempUser.company,
           isEmailVerified: true,
-          phone: user.phone,
-        },
-        redirectUrl,
-      } as VerifyOtpResponseDto);
+        };
+
+        console.log("[VerifyOtp] User data for registration:", {
+          email: userData.email,
+          role: userData.role,
+          hasPassword: !!userData.password,
+        });
+
+        const user = await this.registerUserUseCase.execute(userData);
+        console.log("[VerifyOtp] Created user:", {
+          id: user?.id,
+          email: user?.email,
+          role: user?.role,
+        });
+        if (!user.id) {
+          console.error("[VerifyOtp] User ID missing:", user);
+          throw new Error("Failed to create user: user ID is missing");
+        }
+
+        await this.otpService.deleteTempUser(email);
+        console.log("[VerifyOtp] Deleted temp user for:", email);
+
+        let accessToken, refreshToken;
+        try {
+          accessToken = this.jwtService.generateAccessToken(user);
+          console.log("[VerifyOtp] Access token generated");
+          refreshToken = await this.jwtService.generateRefreshToken(user);
+          console.log("[VerifyOtp] Refresh token generated");
+        } catch (error: any) {
+          console.error("[VerifyOtp] Token generation error:", error.message);
+          res.status(500).json({ message: "Failed to generate tokens" });
+          return;
+        }
+
+        try {
+          res.cookie("accessToken", accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 60 * 60 * 1000,
+          });
+          res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+          });
+          console.log("[VerifyOtp] Cookies set successfully");
+        } catch (error: any) {
+          console.error("[VerifyOtp] Cookie setting error:", error.message);
+          res.status(500).json({ message: "Failed to set cookies" });
+          return;
+        }
+
+        const redirectUrl = this.getRedirectUrl(user.role);
+        console.log("[VerifyOtp] Redirecting to:", redirectUrl);
+        res.status(200).json({
+          user: {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            isEmailVerified: true,
+            phone: user.phone,
+          },
+          redirectUrl,
+        } as VerifyOtpResponseDto);
+      }
     } catch (error: any) {
       console.error("[VerifyOtp] Error:", error.message);
       if (
@@ -189,9 +195,7 @@ export class AuthController {
       ) {
         res.status(429).json({ message: error.message });
       } else {
-        res
-          .status(400)
-          .json({ message: error.message || "OTP verification failed" });
+        res.status(400).json({ message: error.message || "OTP verification failed" });
       }
     }
   }
@@ -204,6 +208,13 @@ export class AuthController {
         return;
       }
 
+      const user = await this.userRepository.findByEmail(email);
+      if (user) {
+        await this.otpService.generateOtp(email, user, true);
+        res.status(200).json({ message: "OTP resent successfully for password reset" });
+        return;
+      }
+
       const tempUser = await this.otpService.getTempUser(email);
       if (!tempUser) {
         res.status(404).json({
@@ -212,7 +223,6 @@ export class AuthController {
         return;
       }
 
-      // Reuse the existing user data to generate a new OTP
       const userData = {
         email: tempUser.email,
         password: tempUser.password,
@@ -225,9 +235,7 @@ export class AuthController {
       await this.otpService.generateOtp(email, userData);
       res.status(200).json({ message: "OTP resent successfully" });
     } catch (error: any) {
-      res
-        .status(400)
-        .json({ message: error.message || "Failed to resend OTP" });
+      res.status(400).json({ message: error.message || "Failed to resend OTP" });
     }
   }
 
@@ -323,7 +331,7 @@ export class AuthController {
         console.log("[Login] Cookies set successfully");
       } catch (error: any) {
         console.error("[Login] Cookie setting error:", error.message);
-        res.status(500).json({ message: "Failed to set cookies" });
+        res.status(400).json({ message: "Failed to set cookies" });
         return;
       }
 
@@ -388,106 +396,44 @@ export class AuthController {
       res.status(500).json({ message: "Logout failed" });
     }
   }
-  /*
-    // Google Sign-In Route
-  googleAuth(req: Request, res: Response): void {
-    passport.authenticate('google')(req, res);
-  }
 
-  // Google Callback Route
-  async googleAuthCallback(req: Request, res: Response): Promise<void> {
-    passport.authenticate('google', { session: false }, async (err, user) => {
-      if (err || !user) {
-        return res.redirect('http://localhost:5173/register?error=' + encodeURIComponent(err?.message || 'Google authentication failed'));
-      }
-      console.log('google sigin successfull');
-      
-      const accessToken = this.jwtService.generateAccessToken(user);
-      const refreshToken = await this.jwtService.generateRefreshToken(user);
-
-      res.cookie('accessToken', accessToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 60 * 60 * 1000 });
-      res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
-
-      const redirectUrl = this.getRedirectUrl(user.role);
-      console.log('Redirecting to:', redirectUrl);
-      res.redirect(redirectUrl);
-    })(req, res);
-  }
-  /*
-
-  // LinkedIn Sign-In Route
-  linkedInAuth(req: Request, res: Response): void {
-    passport.authenticate('linkedin')(req, res);
-  }
-
-  // LinkedIn Callback Route
-  async linkedInAuthCallback(req: Request, res: Response): Promise<void> {
-    passport.authenticate('linkedin', { session: false }, async (err: any, user: User | false) => {
-        console.log('LinkedIn auth callback - err:', err);
-        console.log('LinkedIn auth callback - user:', user);
-      
-      if (err || !user) {
-        return res.redirect('http://localhost:5173/register?error=' + encodeURIComponent(err?.message || 'LinkedIn authentication failed'));
-      }
-        console.log('linkedin sigin successfull');
-      const accessToken = this.jwtService.generateAccessToken(user);
-      const refreshToken = await this.jwtService.generateRefreshToken(user);
-
-      res.cookie('accessToken', accessToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 60 * 60 * 1000 });
-      res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
-
-      const redirectUrl = this.getRedirectUrl(user.role);
-      console.log('Redirecting to:', redirectUrl);
-      res.redirect(redirectUrl);
-    })(req, res);
-  }
-
-  
-
-  */
-  /*
- 
-  // LinkedIn Sign-In Route
-  linkedInAuth(req: Request, res: Response, next: NextFunction): void {
-    passport.authenticate('linkedin-openid', { session: false, scope: 'openid profile email' }, (err, user, info) => {
-      if (err) {
-        console.error('LinkedIn auth error:', err);
-        return next(err);
-      }
-      if (!user) {
-        console.log('LinkedIn auth info:', info);
-        return res.redirect(`/register?error=${encodeURIComponent(info?.message || 'Authentication failed')}`);
-      }
-      req.user = user; // Attach user to request
-      next();
-    })(req, res, next);
-  }
-
-  // LinkedIn Callback Route
-  async linkedInAuthCallback(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const user = req.user as User;
-    if (!user) {
-      return res.redirect('/register?error=User not authenticated');
-    }
-
-    console.log('LinkedIn auth callback - user:', user);
+  async resetPassword(req: Request, res: Response): Promise<void> {
     try {
-      const accessToken = this.jwtService.generateAccessToken(user);
-      const refreshToken = await this.jwtService.generateRefreshToken(user);
+      const { email, otp, newPassword } = req.body;
+      if (!email || !otp || !newPassword) {
+        res.status(400).json({ message: "Email, OTP, and new password are required" });
+        return;
+      }
 
-      res.cookie('accessToken', accessToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 60 * 60 * 1000 });
-      res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
+      const user = await this.userRepository.findByEmail(email);
+      if (!user) {
+        res.status(404).json({ message: "User not found" });
+        return;
+      }
 
-      const redirectUrl = this.getRedirectUrl(user.role);
-      console.log('Redirecting to:', redirectUrl);
-      res.redirect(`http://localhost:5173${redirectUrl}`); // Ensure full URL
+      // Check if newPassword matches the existing password
+      const isSamePassword = await bcrypt.compare(newPassword, user.password);
+      if (isSamePassword) {
+        res.status(400).json({ message: "Please enter a different password from the one previously used" });
+        return;
+      }
+
+      // Check if newPassword and confirmPassword match (assuming confirmPassword is sent, adjust if needed)
+      // Note: Frontend should send confirmPassword; if not, this check should be moved there
+      // For now, assuming backend receives both (update DTO if necessary)
+      const confirmPassword = req.body.confirmPassword;
+      if (newPassword !== confirmPassword) {
+        res.status(400).json({ message: "Passwords do not match" });
+        return;
+      }
+
+      const resetUseCase = new ResetPasswordUseCase(this.userRepository, this.otpService);
+      const result = await resetUseCase.execute(email, otp, newPassword);
+      res.status(200).json(result);
     } catch (error: any) {
-      console.error('Error in callback:', error);
-      next(error);
+      res.status(400).json({ message: error.message || "Password reset failed" });
     }
   }
-
- */
 
   private getRedirectUrl(role: string): string {
     switch (role) {
