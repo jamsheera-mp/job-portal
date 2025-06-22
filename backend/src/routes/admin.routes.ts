@@ -7,5 +7,6 @@ const adminController = new AdminController();
 router.get("/users", adminController.getAllUsers.bind(adminController));
 router.put("/users/:id", adminController.editUser.bind(adminController));
 router.delete("/users/:id", adminController.deleteUser.bind(adminController));
+router.post("/users", adminController.addUser.bind(adminController)); 
 
 export default router;

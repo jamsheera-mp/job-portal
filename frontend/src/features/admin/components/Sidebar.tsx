@@ -2,7 +2,12 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Users, Briefcase } from "lucide-react";
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  activePage: string;
+  setActivePage: (page: string) => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
   return (
     <div className="w-64 bg-white shadow-lg h-full">
       <div className="p-4 border-b">
@@ -13,7 +18,10 @@ const Sidebar: React.FC = () => {
           <li>
             <Link
               to="/admin/users"
-              className="flex items-center py-2 px-4 text-gray-600 hover:bg-gray-200 hover:text-gray-800"
+              className={`flex items-center py-2 px-4 text-gray-600 hover:bg-gray-200 hover:text-gray-800 ${
+                activePage === "users" ? "bg-gray-200 text-gray-800" : ""
+              }`}
+              onClick={() => setActivePage("users")}
             >
               <Users className="mr-2" size={18} />
               Users
@@ -22,7 +30,10 @@ const Sidebar: React.FC = () => {
           <li>
             <Link
               to="/admin/jobs"
-              className="flex items-center py-2 px-4 text-gray-600 hover:bg-gray-200 hover:text-gray-800"
+              className={`flex items-center py-2 px-4 text-gray-600 hover:bg-gray-200 hover:text-gray-800 ${
+                activePage === "jobs" ? "bg-gray-200 text-gray-800" : ""
+              }`}
+              onClick={() => setActivePage("jobs")}
             >
               <Briefcase className="mr-2" size={18} />
               Jobs

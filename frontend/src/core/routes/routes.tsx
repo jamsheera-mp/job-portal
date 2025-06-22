@@ -11,6 +11,9 @@ import ResetPassword from '@/features/auth/components/ResetPassword';
 import AdminDashboard from '@/features/admin/pages/AdminDashboard';
 import Users from '@/features/admin/components/Users';
 import Jobs from '@/features/admin/components/Jobs';
+import UserDetails from '@/features/admin/components/UserDetails';
+import EditUser from '@/features/admin/components/EditUser';
+import UserForm from '@/features/admin/components/UserForm';
 
 const AppRoutes: React.FC = () => {
   return (
@@ -26,6 +29,9 @@ const AppRoutes: React.FC = () => {
       {/*<Route path="/admin/dashboard" element={<div>Admin Dashboard (Placeholder)</div>} />*/}
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<Users />} />
+          <Route path="/admin/users/details/:userId" element={<UserDetails />} />
+<Route path="/admin/users/edit/:userId" element={<EditUser />} />
+<Route path="/admin/users/add" element={<UserForm   />} />
           <Route path="/admin/jobs" element={<Jobs />} />
       <Route path="*" element={<div>Not Found</div>} />
     </Routes>

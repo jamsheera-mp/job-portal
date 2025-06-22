@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { MongoUserRepository } from "../../infrastructure/repositories/user.repository";
 import { JwtService } from "../../infrastructure/services/jwt.service";
-import { JobSeeker, Recruiter, Admin } from "../../domain/interfaces/user.interface";
+import { JobSeeker, Recruiter, Admin, User } from "../../domain/interfaces/user.interface";
 
 export class AdminController {
   private readonly userRepository: MongoUserRepository;
@@ -63,6 +63,45 @@ export class AdminController {
       res.status(200).json({ message: "User deleted successfully" });
     } catch (error: any) {
       res.status(400).json({ message: error.message || "Failed to delete user" });
+    }
+  }
+
+  async addUser(req: Request, res: Response): Promise<void> {
+    try {
+      const user = await this.jwtService.verifyAccessToken(req.cookies.accessToken);
+      if (!user || user.role !== "admin") {
+        res.status(403).json({ message: "Access denied. Admin role required" });
+        return;
+      }
+      const { email, password, role, name, phone, company } = req.body;
+      if (!email || !password || !role) {
+        res.status(400).json({ message: "Email, password, and role are required" });
+        return;
+      }
+      const data: Partial<User> = { email, password, role };
+      if (role === "jobSeeker") {
+        if (!name || !phone) {
+          res.status(400).json({ message: "Name and phone are required for job seekers" });
+          return;
+        }
+        data.name = name;
+        data.phone = phone;
+      } else if (role === "recruiter") {
+        if (!company?.name) {
+          res.status(400).json({ message: "Company name is required for recruiters" });
+          return;
+        }
+        data.company = company;
+      }
+      const existingUser = await this.userRepository.findByEmail(email);
+      if (existingUser) {
+        res.status(400).json({ message: "User with this email already exists" });
+        return;
+      }
+      const newUser = await this.userRepository.create(data);
+      res.status(201).json(newUser);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to add user" });
     }
   }
 }
