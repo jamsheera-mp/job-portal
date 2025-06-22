@@ -8,6 +8,9 @@ import JobSeekerProfile from '@pages/job-seeker/JobSeekerProfile';
 import RecruiterProfile from '@pages/recruiter/RecruiterProfile';
 import Unauthorized from '@features/auth/components/Unauthorized';
 import ResetPassword from '@/features/auth/components/ResetPassword';
+import AdminDashboard from '@/features/admin/pages/AdminDashboard';
+import Users from '@/features/admin/components/Users';
+import Jobs from '@/features/admin/components/Jobs';
 
 const AppRoutes: React.FC = () => {
   return (
@@ -20,7 +23,10 @@ const AppRoutes: React.FC = () => {
       <Route path="/job-seeker/profile" element={<JobSeekerProfile />} />
       <Route path="/recruiter/profile" element={<RecruiterProfile />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
-      <Route path="/admin/dashboard" element={<div>Admin Dashboard (Placeholder)</div>} />
+      {/*<Route path="/admin/dashboard" element={<div>Admin Dashboard (Placeholder)</div>} />*/}
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/users" element={<Users />} />
+          <Route path="/admin/jobs" element={<Jobs />} />
       <Route path="*" element={<div>Not Found</div>} />
     </Routes>
   );

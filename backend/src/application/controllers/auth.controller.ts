@@ -399,9 +399,9 @@ export class AuthController {
 
   async resetPassword(req: Request, res: Response): Promise<void> {
     try {
-      const { email, otp, newPassword } = req.body;
-      if (!email || !otp || !newPassword) {
-        res.status(400).json({ message: "Email, OTP, and new password are required" });
+      const { email, otp, newPassword, confirmPassword } = req.body;
+      if (!email || !otp || !newPassword || !confirmPassword) {
+        res.status(400).json({ message: "Email, OTP, new password, and confirm password are required" });
         return;
       }
 
@@ -411,19 +411,14 @@ export class AuthController {
         return;
       }
 
-      // Check if newPassword matches the existing password
-      const isSamePassword = await bcrypt.compare(newPassword, user.password);
-      if (isSamePassword) {
-        res.status(400).json({ message: "Please enter a different password from the one previously used" });
+      if (newPassword !== confirmPassword) {
+        res.status(400).json({ message: "Passwords do not match" });
         return;
       }
 
-      // Check if newPassword and confirmPassword match (assuming confirmPassword is sent, adjust if needed)
-      // Note: Frontend should send confirmPassword; if not, this check should be moved there
-      // For now, assuming backend receives both (update DTO if necessary)
-      const confirmPassword = req.body.confirmPassword;
-      if (newPassword !== confirmPassword) {
-        res.status(400).json({ message: "Passwords do not match" });
+      const isSamePassword = await bcrypt.compare(newPassword, user.password);
+      if (isSamePassword) {
+        res.status(400).json({ message: "Please enter a different password from the one previously used" });
         return;
       }
 

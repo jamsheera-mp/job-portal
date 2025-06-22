@@ -3,8 +3,9 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import authRoutes from './routes/auth.routes';
-import profileRoutes from './routes/profile.routes'
+
+import mainRoutes from "./routes/main.routes";
+
 
 
 //import session from 'express-session';
@@ -44,8 +45,8 @@ app.use(session({
 
 
 //Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/profile', profileRoutes)
+
+app.use("/api", mainRoutes);
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ message: 'Server is running' });
