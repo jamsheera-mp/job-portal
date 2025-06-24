@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { RegisterUserUseCase } from "../../domain/use-cases/register-user.use-case";
-import { MongoUserRepository } from "../../infrastructure/repositories/user.repository";
+import { MongoUserRepository } from "../../infrastructure/repositories/mongo-user.repository";
 import { JwtService } from "../../infrastructure/services/jwt.service";
 import { OtpService } from "../../infrastructure/services/otp.service";
 import {
@@ -79,14 +79,14 @@ export class AuthController {
 
   async verifyOtp(req: Request, res: Response): Promise<void> {
     try {
-      const { email, otp, isReset }: VerifyOtpRequestDto = req.body;
-      console.log("[VerifyOtp] Request body:", { email, otp, isReset });
+      const { email, otp }: VerifyOtpRequestDto = req.body;
+      console.log("[VerifyOtp] Request body:", { email, otp });
       if (!email || !otp) {
         res.status(400).json({ message: "Email and OTP are required" });
         return;
       }
 
-      const isValid = await this.otpService.verifyOtp(email, otp, isReset);
+      const isValid = await this.otpService.verifyOtp(email, otp);
       console.log("otp", otp);
 
       if (!isValid) {
@@ -94,13 +94,7 @@ export class AuthController {
         return;
       }
 
-      if (isReset) {
-        res.status(200).json({
-          message: "OTP verified, proceed to reset password",
-          email,
-          otp,
-        });
-      } else {
+     
         const tempUser = await this.otpService.getTempUser(email);
         console.log("[VerifyOtp] Retrieved temp user:", {
           email: tempUser?.email,
@@ -186,7 +180,7 @@ export class AuthController {
           },
           redirectUrl,
         } as VerifyOtpResponseDto);
-      }
+      
     } catch (error: any) {
       console.error("[VerifyOtp] Error:", error.message);
       if (

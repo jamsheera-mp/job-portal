@@ -1,5 +1,8 @@
 import { UserRepository } from '../interfaces/user.repository.interface';
-import { UserEntity, JobSeekerEntity, RecruiterEntity, AdminEntity } from '../entities/user.entity';
+import { UserEntity} from '../entities/user.entity';
+import { JobSeekerEntity } from '../entities/jobseeker.entity';
+import { RecruiterEntity } from '../entities/recruiter.entity';
+import { AdminEntity } from '../entities/admin.entity';
 import { User } from '../interfaces/user.interface';
 
 

@@ -1,10 +1,6 @@
 import { model, Schema } from 'mongoose';
+import { Otp } from '../../domain/interfaces/otp.interface'
 
-interface Otp {
-  userId: string;
-  otp: string;
-  expiresAt: Date;
-}
 
 const OtpSchema = new Schema<Otp>({
   userId: { type: String, required: true, index: true },

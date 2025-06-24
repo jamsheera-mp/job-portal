@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { User } from '../../domain/interfaces/user.interface';
-import { RefreshTokenModel } from '../database/refresh-token.schema';
+import { RefreshTokenModel } from '../models/refresh-token.model';
 
 
 

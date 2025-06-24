@@ -1,15 +1,9 @@
-import { useCallback } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import {type  RootState } from '@store/index';
-import { setUser, clearUser } from '@features/auth/slices/authSlice';
-import { api } from '@core/services/api';
-
-interface Profile {
-  email: string;
-  phone?: string;
-  fullName?: string;
-  companyName?: string;
-}
+import { useCallback } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { type RootState } from "@store/index";
+import { setUser, clearUser } from "@features/auth/slices/authSlice";
+import { api } from "@core/services/api";
+import type { JobSeeker } from "@core/types/types";
 
 export const useAuth = () => {
   const dispatch = useDispatch();
@@ -20,12 +14,12 @@ export const useAuth = () => {
     try {
       const response = await api.fetchProfile();
       dispatch(setUser(response.user));
-      return true;
+      return user?.role || "jobSeeker"; // Return role or default
     } catch (error) {
       dispatch(clearUser());
       return false;
     }
-  }, [dispatch]);
+  }, [dispatch, user?.role]); // Added user?.role as dependency
 
   const logout = useCallback(async () => {
     await api.logout();
@@ -35,7 +29,7 @@ export const useAuth = () => {
   return {
     isAuthenticated: () => isAuthenticated,
     role,
-    profile: user as Profile | null,
+    profile: user as JobSeeker | null,
     checkAuth,
     logout,
   };

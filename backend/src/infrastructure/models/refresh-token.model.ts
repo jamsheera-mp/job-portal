@@ -1,10 +1,6 @@
 import { model, Schema } from 'mongoose';
+import { RefreshToken } from '../../domain/interfaces/refreshToken.interface';
 
-interface RefreshToken {
-  userId: string;
-  token: string;
-  expiresAt: Date;
-}
 
 const RefreshTokenSchema = new Schema<RefreshToken>({
   userId: { type: String, required: true, index: true },

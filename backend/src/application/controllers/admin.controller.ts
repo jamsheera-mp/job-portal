@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { MongoUserRepository } from "../../infrastructure/repositories/user.repository";
+import { MongoUserRepository } from "../../infrastructure/repositories/mongo-user.repository";
 import { JwtService } from "../../infrastructure/services/jwt.service";
 import { JobSeeker, Recruiter, Admin, User } from "../../domain/interfaces/user.interface";
 

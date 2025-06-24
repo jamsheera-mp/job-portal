@@ -1,4 +1,4 @@
-import { MongoUserRepository } from "../../infrastructure/repositories/user.repository";
+import { MongoUserRepository } from "../../infrastructure/repositories/mongo-user.repository";
 import { OtpService } from "../../infrastructure/services/otp.service";
 import bcrypt from "bcryptjs";
 

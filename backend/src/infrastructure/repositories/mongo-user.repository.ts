@@ -1,7 +1,14 @@
 import { Document } from "mongoose";
-import { User, JobSeeker, Recruiter, Admin } from "../../domain/interfaces/user.interface";
+
 import { UserRepository } from "../../domain/interfaces/user.repository.interface";
-import { JobSeekerModel, RecruiterModel, AdminModel } from "../database/user.schema";
+import { JobSeekerModel } from "../models/jobseeker.model";
+import { RecruiterModel } from "../models/recruiter.model";
+import { AdminModel } from "../models/admin.model";
+import { JobSeeker } from "../../domain/interfaces/jobseeker.interface";
+import { Admin } from "../../domain/interfaces/admin.interface";
+import { Recruiter } from "../../domain/interfaces/recruiter.interface";
+import { User } from "../../domain/interfaces/user.interface";
+
 
 // Helper function to transform MongoDB document to User interface
 const transformToUser = (doc: any): User => {

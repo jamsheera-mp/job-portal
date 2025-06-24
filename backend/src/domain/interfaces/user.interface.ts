@@ -1,37 +1,23 @@
+import { Company } from "./company.interface";
+
+
 export interface User {
+  
   id: string;
   name?: string,
   email: string;
   password: string;
   role: 'jobSeeker' | 'recruiter' | 'admin';
   phone?: string;
+  company?: Company;
   isBlocked?: boolean;
-  isEmailVerified?: boolean;
+  isEmailVerified: boolean;
   createdAt?: Date;
   updatedAt?: Date;
   
 }
 
-export interface JobSeeker extends User {
-  
-  bio?: string;
-  skills?: string[];
-  resumeUrl?: string;
-  githubUrl?: string;
-  linkedinUrl?: string;
-  experience?: { company: string; role: string; years: number }[];
-  profilePictureUrl?: string;
-}
 
-export interface Recruiter extends User {
-  company?: {
-    name: string;
-    logoUrl?: string;
-    description?: string;
-    website?: string;
-    industry?: string;
-    location?: string;
-  };
-}
 
-export interface Admin extends User {}
+
+

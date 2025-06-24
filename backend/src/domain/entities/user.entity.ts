@@ -1,4 +1,4 @@
-import { User, JobSeeker, Recruiter, Admin } from '../interfaces/user.interface';
+import { User } from '../interfaces/user.interface';
 
 export class UserEntity {
   constructor(private user: User) {}
@@ -8,11 +8,13 @@ export class UserEntity {
       throw new Error('Email, password, and role are required');
     }
     return new UserEntity({
-       id: data.id ?? '', // Default to empty string if id is not provided
+
+      id: data.id ?? '', // Default to empty string if id is not provided
       email: data.email,
       password: data.password,
       role: data.role,
       phone:data.phone,
+      company:data.company,
       isBlocked: data.isBlocked ?? false,
       isEmailVerified: data.isEmailVerified ?? false,
       createdAt: data.createdAt ?? new Date(),
@@ -38,51 +40,7 @@ export class UserEntity {
   }
 }
 
-export class JobSeekerEntity extends UserEntity {
-  constructor(user: JobSeeker) {
-    super(user);
-  }
 
-  static create(data: Partial<JobSeeker>): JobSeekerEntity {
-    if (!data.name) {
-      throw new Error('Name is required for job seekers');
-    }
-    return new JobSeekerEntity({
-      ...UserEntity.create(data).getData(),
-      name: data.name,
-      bio: data.bio,
-      phone: data.phone,
-      skills: data.skills ?? [],
-      resumeUrl: data.resumeUrl,
-      githubUrl: data.githubUrl,
-      linkedinUrl: data.linkedinUrl,
-      experience: data.experience ?? [],
-      profilePictureUrl: data.profilePictureUrl,
-    });
-  }
-}
 
-export class RecruiterEntity extends UserEntity {
-  constructor(user: Recruiter) {
-    super(user);
-  }
 
-  static create(data: Partial<Recruiter>): RecruiterEntity {
-    return new RecruiterEntity({
-      ...UserEntity.create(data).getData(),
-      company: data.company ?? { name: '' },
-    });
-  }
-}
 
-export class AdminEntity extends UserEntity {
-  constructor(user: Admin) {
-    super(user);
-  }
-
-  static create(data: Partial<Admin>): AdminEntity {
-    return new AdminEntity({
-      ...UserEntity.create(data).getData(),
-    });
-  }
-}

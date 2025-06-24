@@ -1,4 +1,4 @@
-import { User, JobSeeker, Recruiter, Admin } from './user.interface';
+import { User } from './user.interface';
 
 export interface UserRepository {
   create(user: User): Promise<User>;

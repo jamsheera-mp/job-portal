@@ -102,7 +102,7 @@ class ApiService {
   }
 
   async verifyOtp(data: VerifyOtpData, signal?: AbortSignal): Promise<AuthResponse> {
-    console.log("[API] Verify OTP request:", { email: data.email, otp: "[REDACTED]", isReset: data.isReset });
+    console.log("[API] Verify OTP request:", { email: data.email, otp: "[REDACTED]"});
     try {
       const response = await axiosInstance.post("/auth/verify-otp", data, { signal });
       console.log("[API] Verify OTP response:", response.data);

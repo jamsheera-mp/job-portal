@@ -22,6 +22,7 @@ export interface RegisterResponseDto {
 export interface VerifyOtpRequestDto {
   email: string; 
   otp: string;
+  
 }
 
 export interface VerifyOtpResponseDto {
